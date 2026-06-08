@@ -50,7 +50,6 @@ export default function AdminPage() {
   const [activeHandle, setActiveHandle] = useState(null); // { line: 'shoulder', point: '1' }
 
   // Canvas Refs
-  const originalCanvasRef = useRef(null);
   const displayCanvasRef = useRef(null);
   const workspaceRef = useRef(null);
 
@@ -68,18 +67,39 @@ export default function AdminPage() {
   };
 
   // Step 1: Handle File Upload / Camera Capture
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setImageSrc(event.target.result);
-      setMarkers([]); // Reset markers
-      setRotation(0); // Reset rotation for new image
-      setStep(2);
-    };
-    reader.readAsDataURL(file);
+    setIsLoading(true);
+    try {
+      const { compressImage } = await import('../../lib/db');
+      // Pre-compress to max 1200px width/height and 0.90 quality
+      // This automatically handles browser auto-rotation and removes EXIF metadata
+      const compressedBlob = await compressImage(file, 1200, 1200, 0.9);
+      
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setImageSrc(event.target.result);
+        setMarkers([]); // Reset markers
+        setRotation(0); // Reset rotation for new image
+        setStep(2);
+        setIsLoading(false);
+      };
+      reader.readAsDataURL(compressedBlob);
+    } catch (err) {
+      console.error('Failed to pre-compress image:', err);
+      // Fallback
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setImageSrc(event.target.result);
+        setMarkers([]);
+        setRotation(0);
+        setStep(2);
+        setIsLoading(false);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleRotate = () => {
@@ -95,14 +115,14 @@ export default function AdminPage() {
     img.src = imageSrc;
     img.onload = () => {
       const canvas = displayCanvasRef.current;
-      const originalCanvas = originalCanvasRef.current;
-      if (!canvas || !originalCanvas) return;
+      if (!canvas) return;
 
       const isRotated = rotation === 90 || rotation === 270;
       const targetWidth = isRotated ? img.height : img.width;
       const targetHeight = isRotated ? img.width : img.height;
 
       // Set original canvas dimensions to rotated image size (for processing)
+      const originalCanvas = document.createElement('canvas');
       originalCanvas.width = targetWidth;
       originalCanvas.height = targetHeight;
       const oCtx = originalCanvas.getContext('2d');
@@ -227,10 +247,31 @@ export default function AdminPage() {
     setIsLoading(true);
 
     try {
-      const originalCanvas = originalCanvasRef.current;
+      // Load original image in-memory
+      const img = new Image();
+      img.src = imageSrc;
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+      });
+
+      const isRotated = rotation === 90 || rotation === 270;
+      const imgWidth = isRotated ? img.height : img.width;
+      const imgHeight = isRotated ? img.width : img.height;
+
+      const originalCanvas = document.createElement('canvas');
+      originalCanvas.width = imgWidth;
+      originalCanvas.height = imgHeight;
       const oCtx = originalCanvas.getContext('2d');
-      const imgWidth = originalCanvas.width;
-      const imgHeight = originalCanvas.height;
+
+      oCtx.save();
+      oCtx.translate(imgWidth / 2, imgHeight / 2);
+      oCtx.rotate((rotation * Math.PI) / 180);
+      oCtx.drawImage(img, -img.width / 2, -img.height / 2, img.width, img.height);
+      oCtx.restore();
+
+      const srcImgData = oCtx.getImageData(0, 0, imgWidth, imgHeight);
+      const srcData = srcImgData.data;
 
       // 1. Get original high-res points from normalized coordinates
       const pts = markers.map(m => ({
@@ -247,39 +288,6 @@ export default function AdminPage() {
       const dCtx = destCanvas.getContext('2d');
       const destImgData = dCtx.createImageData(destWidth, destHeight);
       const destData = destImgData.data;
-
-      // Draw chroma-keyed processed image to a temp canvas to read background-removed pixels
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = imgWidth;
-      tempCanvas.height = imgHeight;
-      const tCtx = tempCanvas.getContext('2d');
-      tCtx.drawImage(originalCanvas, 0, 0);
-
-      // Apply chroma key on high-res image
-      if (chromaMode !== 'none') {
-        const tImgData = tCtx.getImageData(0, 0, imgWidth, imgHeight);
-        const tData = tImgData.data;
-        const tol = Number(tolerance);
-        
-        for (let i = 0; i < tData.length; i += 4) {
-          const r = tData[i];
-          const g = tData[i + 1];
-          const b = tData[i + 2];
-          let match = false;
-          if (chromaMode === 'green') {
-            match = g > 75 && g - r > tol - 40 && g - b > tol - 40;
-          } else if (chromaMode === 'blue') {
-            match = b > 75 && b - r > tol - 40 && b - g > tol - 40;
-          }
-          if (match) {
-            tData[i] = 255; tData[i + 1] = 255; tData[i + 2] = 255; tData[i + 3] = 255;
-          }
-        }
-        tCtx.putImageData(tImgData, 0, 0);
-      }
-
-      const srcImgData = tCtx.getImageData(0, 0, imgWidth, imgHeight);
-      const srcData = srcImgData.data;
 
       // 2. Perform bilinear inverse-perspective warping
       // pts: 0: TL, 1: TR, 2: BR, 3: BL
@@ -321,6 +329,29 @@ export default function AdminPage() {
         }
       }
       dCtx.putImageData(destImgData, 0, 0);
+
+      // Apply chroma key on the warped 500x500 image directly (48x fewer pixels to process!)
+      if (chromaMode !== 'none') {
+        const destImgDataWarped = dCtx.getImageData(0, 0, destWidth, destHeight);
+        const dData = destImgDataWarped.data;
+        const tol = Number(tolerance);
+        
+        for (let i = 0; i < dData.length; i += 4) {
+          const r = dData[i];
+          const g = dData[i + 1];
+          const b = dData[i + 2];
+          let match = false;
+          if (chromaMode === 'green') {
+            match = g > 75 && g - r > tol - 40 && g - b > tol - 40;
+          } else if (chromaMode === 'blue') {
+            match = b > 75 && b - r > tol - 40 && b - g > tol - 40;
+          }
+          if (match) {
+            dData[i] = 255; dData[i + 1] = 255; dData[i + 2] = 255; dData[i + 3] = 255;
+          }
+        }
+        dCtx.putImageData(destImgDataWarped, 0, 0);
+      }
 
       const warpedDataURL = destCanvas.toDataURL('image/jpeg', 0.85);
       setWarpedImageSrc(warpedDataURL);
@@ -631,8 +662,6 @@ export default function AdminPage() {
               className={styles.interactiveCanvas}
               onClick={handleCanvasClick}
             />
-            {/* Hidden canvas for image source scaling */}
-            <canvas ref={originalCanvasRef} style={{ display: 'none' }} />
           </div>
 
           {/* Control parameters */}
