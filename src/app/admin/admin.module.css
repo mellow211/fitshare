@@ -1,0 +1,360 @@
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 20px;
+  width: 100%;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  animation: fadeIn 0.4s ease forwards;
+}
+
+.titleArea {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.backBtn {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.backBtn:hover {
+  background: hsl(var(--muted));
+  border-color: hsl(var(--muted-foreground) / 0.3);
+}
+
+.stepTitle {
+  font-size: 28px;
+  font-family: var(--font-title);
+  font-weight: 800;
+  margin-bottom: 5px;
+}
+
+.stepSubtitle {
+  font-size: 14px;
+  color: hsl(var(--muted-foreground));
+}
+
+.progressBar {
+  width: 100%;
+  height: 6px;
+  background: hsl(var(--muted));
+  border-radius: 3px;
+  margin-bottom: 40px;
+  overflow: hidden;
+}
+
+.progress {
+  height: 100%;
+  background: linear-gradient(90deg, hsl(var(--primary)) 0%, hsl(var(--secondary)) 100%);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Upload Panel styling */
+.uploadCard {
+  border: 2px dashed hsl(var(--card-border));
+  background: var(--glass-bg);
+  border-radius: var(--radius-lg);
+  padding: 80px 40px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+.uploadCard:hover {
+  border-color: hsl(var(--primary));
+  box-shadow: 0 0 20px 0 hsl(var(--primary) / 0.15);
+  background: hsl(var(--card) / 0.5);
+}
+
+.uploadIcon {
+  width: 64px;
+  height: 64px;
+  color: hsl(var(--primary));
+  background: hsl(var(--primary) / 0.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.uploadTitle {
+  font-size: 18px;
+  font-family: var(--font-title);
+  margin-bottom: 5px;
+}
+
+.uploadDesc {
+  font-size: 13px;
+  color: hsl(var(--muted-foreground));
+  max-width: 320px;
+}
+
+/* Setup Panel (Chroma-key and calibration) */
+.setupGrid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 30px;
+}
+
+@media (max-width: 900px) {
+  .setupGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.canvasContainer {
+  position: relative;
+  width: 100%;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: #000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 1px solid hsl(var(--card-border));
+  aspect-ratio: 4/3;
+}
+
+.interactiveCanvas {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  cursor: crosshair;
+}
+
+.controlCard {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.cardSectionTitle {
+  font-size: 16px;
+  font-family: var(--font-title);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid hsl(var(--border));
+  padding-bottom: 10px;
+}
+
+.optionGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.optionButton {
+  background: hsl(var(--muted));
+  border: 1px solid hsl(var(--border));
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+.optionButtonActive {
+  background: hsl(var(--primary) / 0.15);
+  border-color: hsl(var(--primary));
+  color: #4ade80;
+}
+
+.sliderContainer {
+  margin-top: 15px;
+}
+
+.sliderLabel {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: hsl(var(--muted-foreground));
+  margin-bottom: 8px;
+}
+
+.sliderInput {
+  width: 100%;
+  accent-color: hsl(var(--primary));
+  cursor: pointer;
+}
+
+.markerInfoList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.markerItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: hsl(var(--muted-foreground));
+}
+
+.markerDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: hsl(var(--muted-foreground));
+  transition: all 0.2s ease;
+}
+
+.markerItemActive {
+  color: hsl(var(--foreground));
+  font-weight: 600;
+}
+
+.markerDotActive {
+  background: #f43f5e; /* Red pulse */
+  box-shadow: 0 0 8px #f43f5e;
+  transform: scale(1.3);
+}
+
+.markerDotFilled {
+  background: #10b981; /* Green check */
+}
+
+/* Edit & Verify screen */
+.workspaceGrid {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 30px;
+}
+
+@media (max-width: 900px) {
+  .workspaceGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.editorCanvasContainer {
+  position: relative;
+  background: #111;
+  border-radius: var(--radius-lg);
+  border: 1px solid hsl(var(--card-border));
+  width: 100%;
+  aspect-ratio: 1/1;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.editorCanvas {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.formGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.formLabel {
+  font-size: 13px;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground));
+  margin-bottom: 5px;
+  display: block;
+}
+
+.dimensionGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+  background: hsl(var(--muted) / 0.4);
+  padding: 15px;
+  border-radius: var(--radius-md);
+  border: 1px solid hsl(var(--border));
+}
+
+.dimensionBox {
+  display: flex;
+  flex-direction: column;
+}
+
+.dimensionName {
+  font-size: 12px;
+  color: hsl(var(--muted-foreground));
+}
+
+.dimensionValue {
+  font-size: 22px;
+  font-family: var(--font-title);
+  font-weight: 700;
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+}
+
+.dimensionUnit {
+  font-size: 13px;
+  font-weight: 400;
+  color: hsl(var(--muted-foreground));
+}
+
+.actionRow {
+  display: flex;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.loadingOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 15, 30, 0.85);
+  backdrop-filter: blur(8px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  z-index: 10;
+}
+
+.loadingText {
+  font-family: var(--font-title);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: hsl(var(--success));
+  color: #fff;
+  padding: 16px 24px;
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: fadeIn 0.3s ease forwards;
+  z-index: 1000;
+}

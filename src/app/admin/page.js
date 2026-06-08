@@ -1,0 +1,993 @@
+'use client';
+
+import React, { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import { 
+  Upload, Camera, Check, RotateCcw, Scissors, 
+  Maximize2, Save, Loader2, Sparkles, Sliders, ArrowLeft, Info
+} from 'lucide-react';
+import styles from './admin.module.css';
+import { uploadImage, addCloth } from '../../lib/db';
+
+export default function AdminPage() {
+  const router = useRouter();
+  const [step, setStep] = useState(1); // 1: Upload, 2: Calibration/Chroma, 3: Edit/Save
+  const [imageSrc, setImageSrc] = useState(null);
+  
+  // Chroma Key Settings
+  const [chromaMode, setChromaMode] = useState('green'); // 'green', 'blue', 'none'
+  const [tolerance, setTolerance] = useState(60);
+  
+  // Calibration Markers: TL, TR, BR, BL
+  const [markers, setMarkers] = useState([]);
+  const markerLabels = ['좌측 상단 (Top-Left)', '우측 상단 (Top-Right)', '우측 하단 (Bottom-Right)', '좌측 하단 (Bottom-Left)'];
+  
+  // Form Metadata
+  const [name, setName] = useState('');
+  const [category, setCategory] = useState('상의'); // '상의', '하의', '아우터'
+  const [color, setColor] = useState('네이비');
+  const [style, setStyle] = useState('체육복'); // '교복', '체육복', '일상복'
+  const [spaceCode, setSpaceCode] = useState('default-wardrobe');
+
+  // Warped Canvas & AI measurements
+  const [warpedImageSrc, setWarpedImageSrc] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [toastMessage, setToastMessage] = useState(null);
+
+  // Measurement Line Handles (Percentage coordinates 0-100)
+  // Each line has point A (x1, y1) and point B (x2, y2)
+  const [lineHandles, setLineHandles] = useState({
+    shoulder: { x1: 30, y1: 20, x2: 70, y2: 20 },
+    chest: { x1: 25, y1: 36, x2: 75, y2: 36 },
+    sleeve: { x1: 30, y1: 20, x2: 12, y2: 50 },
+    length: { x1: 50, y1: 20, x2: 50, y2: 85 },
+    // for pants
+    waist: { x1: 30, y1: 15, x2: 70, y2: 15 },
+    pantsLength: { x1: 50, y1: 15, x2: 50, y2: 92 }
+  });
+
+  const [activeHandle, setActiveHandle] = useState(null); // { line: 'shoulder', point: '1' }
+
+  // Canvas Refs
+  const originalCanvasRef = useRef(null);
+  const displayCanvasRef = useRef(null);
+  const workspaceRef = useRef(null);
+
+  // Load space code from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('fitshare_active_space');
+      if (saved) setSpaceCode(saved);
+    }
+  }, []);
+
+  const triggerToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  // Step 1: Handle File Upload / Camera Capture
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setImageSrc(event.target.result);
+      setMarkers([]); // Reset markers
+      setStep(2);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Draw setup canvas (original image + chroma key + markers overlay)
+  useEffect(() => {
+    if (step !== 2 || !imageSrc) return;
+
+    const img = new Image();
+    img.src = imageSrc;
+    img.onload = () => {
+      const canvas = displayCanvasRef.current;
+      const originalCanvas = originalCanvasRef.current;
+      if (!canvas || !originalCanvas) return;
+
+      // Set original canvas dimensions to actual image size (for processing)
+      originalCanvas.width = img.width;
+      originalCanvas.height = img.height;
+      const oCtx = originalCanvas.getContext('2d');
+      oCtx.drawImage(img, 0, 0);
+
+      // Set display canvas dimensions
+      const containerWidth = canvas.parentNode.clientWidth;
+      const scale = containerWidth / img.width;
+      canvas.width = containerWidth;
+      canvas.height = img.height * scale;
+      
+      drawProcessedImage(img, canvas);
+    };
+  }, [step, imageSrc, chromaMode, tolerance, markers]);
+
+  // Apply Chroma-key Background Removal and draw markers on canvas
+  const drawProcessedImage = (img, canvas) => {
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw original image on display canvas first
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+    // If chroma-key is enabled, process pixels
+    if (chromaMode !== 'none') {
+      try {
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imgData.data;
+        const tol = Number(tolerance);
+
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+
+          let match = false;
+          if (chromaMode === 'green') {
+            // Green backdrop detection
+            match = g > 75 && g - r > tol - 40 && g - b > tol - 40;
+          } else if (chromaMode === 'blue') {
+            // Blue backdrop detection
+            match = b > 75 && b - r > tol - 40 && b - g > tol - 40;
+          }
+
+          if (match) {
+            // Replace matching pixels with pure studio-white
+            data[i] = 255;     // R
+            data[i + 1] = 255; // G
+            data[i + 2] = 255; // B
+            data[i + 3] = 255; // Alpha
+          }
+        }
+        ctx.putImageData(imgData, 0, 0);
+      } catch (e) {
+        console.error("Canvas pixel read blocked (cross-origin error). Running without chroma-key overlay.", e);
+      }
+    }
+
+    // Draw calibration markers and connecting lines
+    ctx.lineWidth = 2;
+    
+    if (markers.length > 0) {
+      ctx.strokeStyle = '#f43f5e';
+      ctx.beginPath();
+      ctx.moveTo(markers[0].x * canvas.width, markers[0].y * canvas.height);
+      
+      for (let i = 1; i < markers.length; i++) {
+        ctx.lineTo(markers[i].x * canvas.width, markers[i].y * canvas.height);
+      }
+      
+      if (markers.length === 4) {
+        ctx.closePath();
+      }
+      ctx.stroke();
+    }
+
+    // Draw individual corner marker points
+    markers.forEach((m, idx) => {
+      ctx.fillStyle = '#f43f5e';
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(m.x * canvas.width, m.y * canvas.height, 8, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.stroke();
+      
+      // Draw label number
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 11px Inter';
+      ctx.fillText(idx + 1, m.x * canvas.width - 3, m.y * canvas.height + 4);
+    });
+  };
+
+  // Capture mouse clicks on canvas to position 4-corner markers
+  const handleCanvasClick = (e) => {
+    if (markers.length >= 4) return; // All markers set
+
+    const canvas = displayCanvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = (e.clientY - rect.top) / rect.height;
+
+    setMarkers([...markers, { x, y }]);
+  };
+
+  const resetMarkers = () => {
+    setMarkers([]);
+  };
+
+  // Step 2 Action: Apply Bilinear Warping (Homography simulation) and invoke Gemini AI
+  const handleWarpAndAnalyze = async () => {
+    if (markers.length < 4) {
+      triggerToast('촬영 상자의 4개 모서리 마커를 모두 지정해주세요.');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const originalCanvas = originalCanvasRef.current;
+      const oCtx = originalCanvas.getContext('2d');
+      const imgWidth = originalCanvas.width;
+      const imgHeight = originalCanvas.height;
+
+      // 1. Get original high-res points from normalized coordinates
+      const pts = markers.map(m => ({
+        x: m.x * imgWidth,
+        y: m.y * imgHeight
+      }));
+
+      // Create destination canvas for warped ortho-image (500x500 pixels = 100cm x 100cm)
+      const destWidth = 500;
+      const destHeight = 500;
+      const destCanvas = document.createElement('canvas');
+      destCanvas.width = destWidth;
+      destCanvas.height = destHeight;
+      const dCtx = destCanvas.getContext('2d');
+      const destImgData = dCtx.createImageData(destWidth, destHeight);
+      const destData = destImgData.data;
+
+      // Draw chroma-keyed processed image to a temp canvas to read background-removed pixels
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = imgWidth;
+      tempCanvas.height = imgHeight;
+      const tCtx = tempCanvas.getContext('2d');
+      tCtx.drawImage(originalCanvas, 0, 0);
+
+      // Apply chroma key on high-res image
+      if (chromaMode !== 'none') {
+        const tImgData = tCtx.getImageData(0, 0, imgWidth, imgHeight);
+        const tData = tImgData.data;
+        const tol = Number(tolerance);
+        
+        for (let i = 0; i < tData.length; i += 4) {
+          const r = tData[i];
+          const g = tData[i + 1];
+          const b = tData[i + 2];
+          let match = false;
+          if (chromaMode === 'green') {
+            match = g > 75 && g - r > tol - 40 && g - b > tol - 40;
+          } else if (chromaMode === 'blue') {
+            match = b > 75 && b - r > tol - 40 && b - g > tol - 40;
+          }
+          if (match) {
+            tData[i] = 255; tData[i + 1] = 255; tData[i + 2] = 255; tData[i + 3] = 255;
+          }
+        }
+        tCtx.putImageData(tImgData, 0, 0);
+      }
+
+      const srcImgData = tCtx.getImageData(0, 0, imgWidth, imgHeight);
+      const srcData = srcImgData.data;
+
+      // 2. Perform bilinear inverse-perspective warping
+      // pts: 0: TL, 1: TR, 2: BR, 3: BL
+      for (let yd = 0; yd < destHeight; yd++) {
+        for (let xd = 0; xd < destWidth; xd++) {
+          const u = xd / (destWidth - 1);
+          const v = yd / (destHeight - 1);
+
+          // Bilinear interpolation equations
+          const xs = Math.round(
+            (1 - u) * (1 - v) * pts[0].x +
+            u * (1 - v) * pts[1].x +
+            u * v * pts[2].x +
+            (1 - u) * v * pts[3].x
+          );
+
+          const ys = Math.round(
+            (1 - u) * (1 - v) * pts[0].y +
+            u * (1 - v) * pts[1].y +
+            u * v * pts[2].y +
+            (1 - u) * v * pts[3].y
+          );
+
+          // Boundary check
+          let r = 255, g = 255, b = 255, a = 255;
+          if (xs >= 0 && xs < imgWidth && ys >= 0 && ys < imgHeight) {
+            const index = (ys * imgWidth + xs) * 4;
+            r = srcData[index];
+            g = srcData[index + 1];
+            b = srcData[index + 2];
+            a = srcData[index + 3];
+          }
+
+          const destIndex = (yd * destWidth + xd) * 4;
+          destData[destIndex] = r;
+          destData[destIndex + 1] = g;
+          destData[destIndex + 2] = b;
+          destData[destIndex + 3] = a;
+        }
+      }
+      dCtx.putImageData(destImgData, 0, 0);
+
+      const warpedDataURL = destCanvas.toDataURL('image/jpeg', 0.85);
+      setWarpedImageSrc(warpedDataURL);
+
+      // 3. Call AI Analysis API with clean warped image
+      const aiResponse = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: warpedDataURL, categoryHint: category })
+      });
+
+      if (!aiResponse.ok) {
+        throw new Error('Gemini API 분석 요청 실패');
+      }
+
+      const aiData = await aiResponse.json();
+
+      // Populate form values
+      setName(`${style} ${aiData.category} (자동 태깅)`);
+      setCategory(aiData.category);
+      setColor(aiData.color);
+      setStyle(aiData.style);
+
+      // Initialize handle coordinates based on Gemini analysis
+      if (aiData.category === '하의') {
+        const gl = aiData.guidelines;
+        const ms = aiData.measurements;
+        const w_half = ms.waist ? ms.waist / 2 : 15;
+        
+        setLineHandles(prev => ({
+          ...prev,
+          waist: { x1: 50 - w_half, y1: gl.waist_y || 15, x2: 50 + w_half, y2: gl.waist_y || 15 },
+          pantsLength: { x1: 50, y1: gl.length_start_y || 15, x2: 50, y2: gl.length_end_y || 92 }
+        }));
+      } else {
+        const gl = aiData.guidelines;
+        const ms = aiData.measurements;
+        const s_half = ms.shoulder ? ms.shoulder / 2 : 20;
+        const c_half = ms.chest ? ms.chest / 2 : 23;
+        
+        setLineHandles(prev => ({
+          ...prev,
+          shoulder: { x1: 50 - s_half, y1: gl.shoulder_y || 20, x2: 50 + s_half, y2: gl.shoulder_y || 20 },
+          chest: { x1: 50 - c_half, y1: gl.chest_y || 36, x2: 50 + c_half, y2: gl.chest_y || 36 },
+          sleeve: { x1: 50 - s_half, y1: gl.shoulder_y || 20, x2: gl.sleeve_end_x || 12, y2: 48 },
+          length: { x1: 50, y1: gl.length_start_y || 20, x2: 50, y2: gl.length_end_y || 88 }
+        }));
+      }
+
+      setStep(3);
+    } catch (e) {
+      console.error(e);
+      triggerToast('이미지 처리 및 AI 분석 과정 중 오류가 발생했습니다.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle Drag Events for measurement coordinates
+  const handleHandleStart = (line, point, e) => {
+    e.preventDefault();
+    setActiveHandle({ line, point });
+  };
+
+  useEffect(() => {
+    const handleMove = (e) => {
+      if (!activeHandle) return;
+
+      const container = workspaceRef.current;
+      if (!container) return;
+
+      const rect = container.getBoundingClientRect();
+      
+      // Get pointer position (mouse or touch)
+      let clientX, clientY;
+      if (e.touches && e.touches.length > 0) {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+      } else {
+        clientX = e.clientX;
+        clientY = e.clientY;
+      }
+
+      // Calculate percentage inside container (clamped 0 to 100)
+      const x = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
+      const y = Math.max(0, Math.min(100, ((clientY - rect.top) / rect.height) * 100));
+
+      setLineHandles(prev => {
+        const lineData = { ...prev[activeHandle.line] };
+        if (activeHandle.point === '1') {
+          lineData.x1 = Math.round(x);
+          lineData.y1 = Math.round(y);
+        } else {
+          lineData.x2 = Math.round(x);
+          lineData.y2 = Math.round(y);
+        }
+        return {
+          ...prev,
+          [activeHandle.line]: lineData
+        };
+      });
+    };
+
+    const handleEnd = () => {
+      setActiveHandle(null);
+    };
+
+    if (activeHandle) {
+      window.addEventListener('mousemove', handleMove);
+      window.addEventListener('mouseup', handleEnd);
+      window.addEventListener('touchmove', handleMove, { passive: false });
+      window.addEventListener('touchend', handleEnd);
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('mouseup', handleEnd);
+      window.removeEventListener('touchmove', handleMove);
+      window.removeEventListener('touchend', handleEnd);
+    };
+  }, [activeHandle]);
+
+  // Calculate live dimensions in cm (since W=100cm, H=100cm, 1% distance = 1cm)
+  const getDistance = (line) => {
+    const coords = lineHandles[line];
+    if (!coords) return 0;
+    const dist = Math.sqrt(Math.pow(coords.x2 - coords.x1, 2) + Math.pow(coords.y2 - coords.y1, 2));
+    return Math.round(dist);
+  };
+
+  const getMeasurements = () => {
+    if (category === '하의') {
+      return {
+        waist: getDistance('waist'),
+        length: getDistance('pantsLength')
+      };
+    } else {
+      return {
+        shoulder: getDistance('shoulder'),
+        chest: getDistance('chest'),
+        sleeve: getDistance('sleeve'),
+        length: getDistance('length')
+      };
+    }
+  };
+
+  // Convert coordinate handles to relative layout markers for dashboard overlays
+  const getGuidelines = () => {
+    if (category === '하의') {
+      return {
+        waist_y: lineHandles.waist.y1,
+        length_start_y: lineHandles.pantsLength.y1,
+        length_end_y: lineHandles.pantsLength.y2
+      };
+    } else {
+      return {
+        shoulder_y: lineHandles.shoulder.y1,
+        chest_y: lineHandles.chest.y1,
+        sleeve_start_x: lineHandles.sleeve.x1,
+        sleeve_end_x: lineHandles.sleeve.x2,
+        length_start_y: lineHandles.length.y1,
+        length_end_y: lineHandles.length.y2
+      };
+    }
+  };
+
+  // Submit and Save Clothing item
+  const handleSave = async () => {
+    if (!name.trim()) {
+      triggerToast('의류 명칭을 입력해주세요.');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // 1. Fetch clean warped image canvas blob
+      const warpedBlob = await fetch(warpedImageSrc).then(r => r.blob());
+      const file = new File([warpedBlob], 'clothing.jpg', { type: 'image/jpeg' });
+
+      // 2. Upload photo to storage
+      const uploadedUrl = await uploadImage(file, spaceCode);
+
+      // 3. Save to database
+      const dbPayload = {
+        name,
+        category,
+        color,
+        style,
+        image_url: uploadedUrl,
+        measurements: getMeasurements(),
+        guidelines: getGuidelines()
+      };
+
+      await addCloth(spaceCode, dbPayload);
+      
+      triggerToast('옷장에 새 옷이 등록되었습니다!');
+      
+      // Delay and redirect to main dashboard
+      setTimeout(() => {
+        router.push('/');
+      }, 1500);
+
+    } catch (e) {
+      console.error(e);
+      triggerToast('데이터베이스 저장 중 오류가 발생했습니다.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className={styles.container}>
+      {/* Toast Alert */}
+      {toastMessage && (
+        <div className={styles.toast}>
+          <Check size={18} />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* Header Area */}
+      <div className={styles.header}>
+        <div className={styles.titleArea}>
+          <button 
+            className={styles.backBtn}
+            onClick={() => step > 1 ? setStep(step - 1) : router.push('/')}
+          >
+            <ArrowLeft size={18} />
+          </button>
+          <div>
+            <h1 className={styles.stepTitle}>
+              {step === 1 && '옷 기증 사진 업로드'}
+              {step === 2 && '배경 제거 및 촬영 상자 보정'}
+              {step === 3 && '치수 검수 및 저장'}
+            </h1>
+            <p className={styles.stepSubtitle}>
+              {step === 1 && '기증받을 옷의 정면 사진을 올려주세요. (모바일 촬영 지원)'}
+              {step === 2 && '크로마키 배경의 경계를 조절하고, 촬영 박스의 4개 모서리 꼭짓점을 클릭해주세요.'}
+              {step === 3 && 'AI가 분석한 치수선 위치를 직접 맞춰서 정확한 사이즈를 확인하고 옷장에 추가합니다.'}
+            </p>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <span className="badge badge-available" style={{ fontSize: '12px', padding: '6px 12px' }}>
+            옷장 코드: {spaceCode}
+          </span>
+        </div>
+      </div>
+
+      {/* Progress Bar */}
+      <div className={styles.progressBar}>
+        <div className={styles.progress} style={{ width: `${(step / 3) * 100}%` }}></div>
+      </div>
+
+      {/* STEP 1: Upload or Capture */}
+      {step === 1 && (
+        <div className="fade-in">
+          <label htmlFor="camera-upload">
+            <div className={styles.uploadCard}>
+              <div className={styles.uploadIcon}>
+                <Camera size={36} />
+              </div>
+              <h2 className={styles.uploadTitle}>옷 정면 사진 촬영 또는 선택</h2>
+              <p className={styles.uploadDesc}>
+                모바일에서 터치 시 카메라 앱이 즉시 실행됩니다. 크로마키 초록색 박스 중앙에 옷을 예쁘게 펼쳐서 정면에서 촬영해주세요.
+              </p>
+              <button className="glow-btn" style={{ pointerEvents: 'none' }}>
+                <Upload size={18} /> 사진 촬영하기
+              </button>
+            </div>
+            <input 
+              id="camera-upload"
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handleFileChange}
+              style={{ display: 'none' }}
+            />
+          </label>
+        </div>
+      )}
+
+      {/* STEP 2: Calibration and Chroma Key removal */}
+      {step === 2 && (
+        <div className={`${styles.setupGrid} fade-in`}>
+          {/* Main Calibration canvas wrapper */}
+          <div className={styles.canvasContainer}>
+            <canvas 
+              ref={displayCanvasRef}
+              className={styles.interactiveCanvas}
+              onClick={handleCanvasClick}
+            />
+            {/* Hidden canvas for image source scaling */}
+            <canvas ref={originalCanvasRef} style={{ display: 'none' }} />
+          </div>
+
+          {/* Control parameters */}
+          <div className="glass-panel styles.controlCard" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <div>
+              <h3 className={styles.cardSectionTitle}>
+                <Sliders size={16} /> 크로마키 배경 지우기
+              </h3>
+              <div className={styles.optionGrid}>
+                {['green', 'blue', 'none'].map((mode) => (
+                  <button
+                    key={mode}
+                    className={`${styles.optionButton} ${chromaMode === mode ? styles.optionButtonActive : ''}`}
+                    onClick={() => setChromaMode(mode)}
+                  >
+                    {mode === 'green' && '초록 크로마키'}
+                    {mode === 'blue' && '파랑 크로마키'}
+                    {mode === 'none' && '제거 없음'}
+                  </button>
+                ))}
+              </div>
+              
+              {chromaMode !== 'none' && (
+                <div className={styles.sliderContainer}>
+                  <div className={styles.sliderLabel}>
+                    <span>지우기 강도 (Tolerance)</span>
+                    <span>{tolerance}</span>
+                  </div>
+                  <input 
+                    type="range"
+                    min="10"
+                    max="150"
+                    value={tolerance}
+                    onChange={(e) => setTolerance(e.target.value)}
+                    className={styles.sliderInput}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div>
+              <h3 className={styles.cardSectionTitle}>
+                <Maximize2 size={16} /> 모서리 지정 ({markers.length}/4)
+              </h3>
+              <p style={{ fontSize: '12px', color: 'var(--muted-foreground)', marginTop: '8px', lineHeight: '1.4' }}>
+                촬영 박스 내의 실제 가로/세로 100cm 영역의 꼭짓점 마커 4곳을 순서대로 클릭하세요:
+              </p>
+              
+              <div className={styles.markerInfoList}>
+                {markerLabels.map((lbl, idx) => (
+                  <div key={idx} className={`${styles.markerItem} ${markers.length === idx ? styles.markerItemActive : ''}`}>
+                    <div className={`
+                      ${styles.markerDot} 
+                      ${markers.length === idx ? styles.markerDotActive : ''} 
+                      ${markers.length > idx ? styles.markerDotFilled : ''}
+                    `} />
+                    <span>{lbl}</span>
+                  </div>
+                ))}
+              </div>
+
+              {markers.length > 0 && (
+                <button 
+                  className="glow-btn-secondary" 
+                  style={{ width: '100%', marginTop: '15px', padding: '10px' }}
+                  onClick={resetMarkers}
+                >
+                  <RotateCcw size={14} /> 모서리 다시 지정
+                </button>
+              )}
+            </div>
+
+            <div style={{ marginTop: 'auto' }}>
+              <button 
+                className="glow-btn"
+                style={{ width: '100%' }}
+                disabled={markers.length < 4 || isLoading}
+                onClick={handleWarpAndAnalyze}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="animate-spin" size={18} /> 원근 보정 및 AI 분석 중...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles size={18} /> 보정 및 치수 분석 요청
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* STEP 3: Edit attributes & adjust measurements */}
+      {step === 3 && (
+        <div className={`${styles.workspaceGrid} fade-in`}>
+          {/* Draggable handle interface overlaid on warped canvas */}
+          <div className={styles.editorCanvasContainer} ref={workspaceRef}>
+            {/* The corrected orthophoto */}
+            <img 
+              src={warpedImageSrc} 
+              alt="Warped Clothing" 
+              className={styles.editorCanvas}
+              draggable={false}
+            />
+
+            {/* Draggable handles SVG and HTML layer */}
+            <svg 
+              width="100%" 
+              height="100%" 
+              viewBox="0 0 100 100" 
+              style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}
+            >
+              {category === '하의' ? (
+                <>
+                  {/* Waist Line */}
+                  <line 
+                    x1={lineHandles.waist.x1} y1={lineHandles.waist.y1} 
+                    x2={lineHandles.waist.x2} y2={lineHandles.waist.y2}
+                    stroke="hsl(var(--neon-chest))" strokeWidth="1.2" strokeDasharray="2,2"
+                  />
+                  {/* Pants Length Line */}
+                  <line 
+                    x1={lineHandles.pantsLength.x1} y1={lineHandles.pantsLength.y1} 
+                    x2={lineHandles.pantsLength.x2} y2={lineHandles.pantsLength.y2}
+                    stroke="hsl(var(--neon-length))" strokeWidth="1.2" strokeDasharray="2,2"
+                  />
+                </>
+              ) : (
+                <>
+                  {/* Shoulder Line */}
+                  <line 
+                    x1={lineHandles.shoulder.x1} y1={lineHandles.shoulder.y1} 
+                    x2={lineHandles.shoulder.x2} y2={lineHandles.shoulder.y2}
+                    stroke="hsl(var(--neon-shoulder))" strokeWidth="1.2" strokeDasharray="2,2"
+                  />
+                  {/* Chest Line */}
+                  <line 
+                    x1={lineHandles.chest.x1} y1={lineHandles.chest.y1} 
+                    x2={lineHandles.chest.x2} y2={lineHandles.chest.y2}
+                    stroke="hsl(var(--neon-chest))" strokeWidth="1.2" strokeDasharray="2,2"
+                  />
+                  {/* Sleeve Line */}
+                  <line 
+                    x1={lineHandles.sleeve.x1} y1={lineHandles.sleeve.y1} 
+                    x2={lineHandles.sleeve.x2} y2={lineHandles.sleeve.y2}
+                    stroke="hsl(var(--neon-sleeve))" strokeWidth="1.2" strokeDasharray="2,2"
+                  />
+                  {/* Length Line */}
+                  <line 
+                    x1={lineHandles.length.x1} y1={lineHandles.length.y1} 
+                    x2={lineHandles.length.x2} y2={lineHandles.length.y2}
+                    stroke="hsl(var(--neon-length))" strokeWidth="1.2" strokeDasharray="2,2"
+                  />
+                </>
+              )}
+            </svg>
+
+            {/* Render touch handles on top */}
+            {category === '하의' ? (
+              <>
+                {/* Waist Handles */}
+                <div 
+                  className={styles.draggableHandle} 
+                  style={{ position: 'absolute', left: `${lineHandles.waist.x1}%`, top: `${lineHandles.waist.y1}%`, transform: 'translate(-50%, -50%)', width: '16px', height: '16px', borderRadius: '50%', border: '2px solid white', background: 'hsl(var(--neon-chest))', cursor: 'pointer', boxShadow: '0 0 6px rgba(0,0,0,0.5)' }}
+                  onMouseDown={(e) => handleHandleStart('waist', '1', e)}
+                  onTouchStart={(e) => handleHandleStart('waist', '1', e)}
+                />
+                <div 
+                  className={styles.draggableHandle} 
+                  style={{ position: 'absolute', left: `${lineHandles.waist.x2}%`, top: `${lineHandles.waist.y2}%`, transform: 'translate(-50%, -50%)', width: '16px', height: '16px', borderRadius: '50%', border: '2px solid white', background: 'hsl(var(--neon-chest))', cursor: 'pointer', boxShadow: '0 0 6px rgba(0,0,0,0.5)' }}
+                  onMouseDown={(e) => handleHandleStart('waist', '2', e)}
+                  onTouchStart={(e) => handleHandleStart('waist', '2', e)}
+                />
+                {/* Length Handles */}
+                <div 
+                  className={styles.draggableHandle} 
+                  style={{ position: 'absolute', left: `${lineHandles.pantsLength.x1}%`, top: `${lineHandles.pantsLength.y1}%`, transform: 'translate(-50%, -50%)', width: '16px', height: '16px', borderRadius: '50%', border: '2px solid white', background: 'hsl(var(--neon-length))', cursor: 'pointer', boxShadow: '0 0 6px rgba(0,0,0,0.5)' }}
+                  onMouseDown={(e) => handleHandleStart('pantsLength', '1', e)}
+                  onTouchStart={(e) => handleHandleStart('pantsLength', '1', e)}
+                />
+                <div 
+                  className={styles.draggableHandle} 
+                  style={{ position: 'absolute', left: `${lineHandles.pantsLength.x2}%`, top: `${lineHandles.pantsLength.y2}%`, transform: 'translate(-50%, -50%)', width: '16px', height: '16px', borderRadius: '50%', border: '2px solid white', background: 'hsl(var(--neon-length))', cursor: 'pointer', boxShadow: '0 0 6px rgba(0,0,0,0.5)' }}
+                  onMouseDown={(e) => handleHandleStart('pantsLength', '2', e)}
+                  onTouchStart={(e) => handleHandleStart('pantsLength', '2', e)}
+                />
+              </>
+            ) : (
+              <>
+                {/* Shoulder Handles */}
+                <div 
+                  className={styles.draggableHandle} 
+                  style={{ position: 'absolute', left: `${lineHandles.shoulder.x1}%`, top: `${lineHandles.shoulder.y1}%`, transform: 'translate(-50%, -50%)', width: '16px', height: '16px', borderRadius: '50%', border: '2px solid white', background: 'hsl(var(--neon-shoulder))', cursor: 'pointer', boxShadow: '0 0 6px rgba(0,0,0,0.5)' }}
+                  onMouseDown={(e) => handleHandleStart('shoulder', '1', e)}
+                  onTouchStart={(e) => handleHandleStart('shoulder', '1', e)}
+                />
+                <div 
+                  className={styles.draggableHandle} 
+                  style={{ position: 'absolute', left: `${lineHandles.shoulder.x2}%`, top: `${lineHandles.shoulder.y2}%`, transform: 'translate(-50%, -50%)', width: '16px', height: '16px', borderRadius: '50%', border: '2px solid white', background: 'hsl(var(--neon-shoulder))', cursor: 'pointer', boxShadow: '0 0 6px rgba(0,0,0,0.5)' }}
+                  onMouseDown={(e) => handleHandleStart('shoulder', '2', e)}
+                  onTouchStart={(e) => handleHandleStart('shoulder', '2', e)}
+                />
+                {/* Chest Handles */}
+                <div 
+                  className={styles.draggableHandle} 
+                  style={{ position: 'absolute', left: `${lineHandles.chest.x1}%`, top: `${lineHandles.chest.y1}%`, transform: 'translate(-50%, -50%)', width: '16px', height: '16px', borderRadius: '50%', border: '2px solid white', background: 'hsl(var(--neon-chest))', cursor: 'pointer', boxShadow: '0 0 6px rgba(0,0,0,0.5)' }}
+                  onMouseDown={(e) => handleHandleStart('chest', '1', e)}
+                  onTouchStart={(e) => handleHandleStart('chest', '1', e)}
+                />
+                <div 
+                  className={styles.draggableHandle} 
+                  style={{ position: 'absolute', left: `${lineHandles.chest.x2}%`, top: `${lineHandles.chest.y2}%`, transform: 'translate(-50%, -50%)', width: '16px', height: '16px', borderRadius: '50%', border: '2px solid white', background: 'hsl(var(--neon-chest))', cursor: 'pointer', boxShadow: '0 0 6px rgba(0,0,0,0.5)' }}
+                  onMouseDown={(e) => handleHandleStart('chest', '2', e)}
+                  onTouchStart={(e) => handleHandleStart('chest', '2', e)}
+                />
+                {/* Sleeve Handles */}
+                <div 
+                  className={styles.draggableHandle} 
+                  style={{ position: 'absolute', left: `${lineHandles.sleeve.x1}%`, top: `${lineHandles.sleeve.y1}%`, transform: 'translate(-50%, -50%)', width: '16px', height: '16px', borderRadius: '50%', border: '2px solid white', background: 'hsl(var(--neon-sleeve))', cursor: 'pointer', boxShadow: '0 0 6px rgba(0,0,0,0.5)' }}
+                  onMouseDown={(e) => handleHandleStart('sleeve', '1', e)}
+                  onTouchStart={(e) => handleHandleStart('sleeve', '1', e)}
+                />
+                <div 
+                  className={styles.draggableHandle} 
+                  style={{ position: 'absolute', left: `${lineHandles.sleeve.x2}%`, top: `${lineHandles.sleeve.y2}%`, transform: 'translate(-50%, -50%)', width: '16px', height: '16px', borderRadius: '50%', border: '2px solid white', background: 'hsl(var(--neon-sleeve))', cursor: 'pointer', boxShadow: '0 0 6px rgba(0,0,0,0.5)' }}
+                  onMouseDown={(e) => handleHandleStart('sleeve', '2', e)}
+                  onTouchStart={(e) => handleHandleStart('sleeve', '2', e)}
+                />
+                {/* Length Handles */}
+                <div 
+                  className={styles.draggableHandle} 
+                  style={{ position: 'absolute', left: `${lineHandles.length.x1}%`, top: `${lineHandles.length.y1}%`, transform: 'translate(-50%, -50%)', width: '16px', height: '16px', borderRadius: '50%', border: '2px solid white', background: 'hsl(var(--neon-length))', cursor: 'pointer', boxShadow: '0 0 6px rgba(0,0,0,0.5)' }}
+                  onMouseDown={(e) => handleHandleStart('length', '1', e)}
+                  onTouchStart={(e) => handleHandleStart('length', '1', e)}
+                />
+                <div 
+                  className={styles.draggableHandle} 
+                  style={{ position: 'absolute', left: `${lineHandles.length.x2}%`, top: `${lineHandles.length.y2}%`, transform: 'translate(-50%, -50%)', width: '16px', height: '16px', borderRadius: '50%', border: '2px solid white', background: 'hsl(var(--neon-length))', cursor: 'pointer', boxShadow: '0 0 6px rgba(0,0,0,0.5)' }}
+                  onMouseDown={(e) => handleHandleStart('length', '2', e)}
+                  onTouchStart={(e) => handleHandleStart('length', '2', e)}
+                />
+              </>
+            )}
+
+            {isLoading && (
+              <div className={styles.loadingOverlay}>
+                <Loader2 className="animate-spin" size={36} color="hsl(var(--primary))" />
+                <span className={styles.loadingText}>옷장 등록 진행 중...</span>
+              </div>
+            )}
+          </div>
+
+          {/* Form edit and save inputs */}
+          <div className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <h3 className={styles.cardSectionTitle}>
+              <Check size={16} /> 의류 메타데이터 및 실측 결과
+            </h3>
+
+            <div className={styles.formGrid}>
+              <div>
+                <label className={styles.formLabel}>의류 명칭</label>
+                <input 
+                  type="text" 
+                  value={name} 
+                  onChange={(e) => setName(e.target.value)} 
+                  className="input-field" 
+                  placeholder="예: OOO초 체육복 상의"
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                <div>
+                  <label className={styles.formLabel}>카테고리</label>
+                  <select 
+                    value={category} 
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="input-field"
+                    style={{ appearance: 'auto' }}
+                  >
+                    <option value="상의">상의</option>
+                    <option value="하의">하의</option>
+                    <option value="아우터">아우터</option>
+                  </select>
+                </div>
+                <div>
+                  <label className={styles.formLabel}>의류 스타일</label>
+                  <select 
+                    value={style} 
+                    onChange={(e) => setStyle(e.target.value)}
+                    className="input-field"
+                    style={{ appearance: 'auto' }}
+                  >
+                    <option value="교복">교복</option>
+                    <option value="체육복">체육복</option>
+                    <option value="일상복">일상복</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className={styles.formLabel}>색상</label>
+                <input 
+                  type="text" 
+                  value={color} 
+                  onChange={(e) => setColor(e.target.value)} 
+                  className="input-field"
+                  placeholder="예: 네이비, 화이트, 블랙"
+                />
+              </div>
+            </div>
+
+            {/* CM measurement results cards */}
+            <div className={styles.dimensionGrid}>
+              {category === '하의' ? (
+                <>
+                  <div className={styles.dimensionBox}>
+                    <span className={styles.dimensionName} style={{ borderLeft: '3px solid hsl(var(--neon-chest))', paddingLeft: '6px' }}>허리 단면</span>
+                    <span className={styles.dimensionValue} style={{ color: 'hsl(var(--neon-chest))' }}>
+                      {getDistance('waist')}<span className={styles.dimensionUnit}>cm</span>
+                    </span>
+                  </div>
+                  <div className={styles.dimensionBox}>
+                    <span className={styles.dimensionName} style={{ borderLeft: '3px solid hsl(var(--neon-length))', paddingLeft: '6px' }}>바지 총장</span>
+                    <span className={styles.dimensionValue} style={{ color: 'hsl(var(--neon-length))' }}>
+                      {getDistance('pantsLength')}<span className={styles.dimensionUnit}>cm</span>
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className={styles.dimensionBox}>
+                    <span className={styles.dimensionName} style={{ borderLeft: '3px solid hsl(var(--neon-shoulder))', paddingLeft: '6px' }}>어깨 너비</span>
+                    <span className={styles.dimensionValue} style={{ color: 'hsl(var(--neon-shoulder))' }}>
+                      {getDistance('shoulder')}<span className={styles.dimensionUnit}>cm</span>
+                    </span>
+                  </div>
+                  <div className={styles.dimensionBox}>
+                    <span className={styles.dimensionName} style={{ borderLeft: '3px solid hsl(var(--neon-chest))', paddingLeft: '6px' }}>가슴 단면</span>
+                    <span className={styles.dimensionValue} style={{ color: 'hsl(var(--neon-chest))' }}>
+                      {getDistance('chest')}<span className={styles.dimensionUnit}>cm</span>
+                    </span>
+                  </div>
+                  <div className={styles.dimensionBox} style={{ marginTop: '10px' }}>
+                    <span className={styles.dimensionName} style={{ borderLeft: '3px solid hsl(var(--neon-sleeve))', paddingLeft: '6px' }}>소매 길이</span>
+                    <span className={styles.dimensionValue} style={{ color: 'hsl(var(--neon-sleeve))' }}>
+                      {getDistance('sleeve')}<span className={styles.dimensionUnit}>cm</span>
+                    </span>
+                  </div>
+                  <div className={styles.dimensionBox} style={{ marginTop: '10px' }}>
+                    <span className={styles.dimensionName} style={{ borderLeft: '3px solid hsl(var(--neon-length))', paddingLeft: '6px' }}>의류 총장</span>
+                    <span className={styles.dimensionValue} style={{ color: 'hsl(var(--neon-length))' }}>
+                      {getDistance('length')}<span className={styles.dimensionUnit}>cm</span>
+                    </span>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className={styles.markerItem} style={{ background: 'hsl(var(--muted)/0.3)', padding: '10px', borderRadius: 'var(--radius-sm)', border: '1px dashed hsl(var(--border))' }}>
+              <Info size={16} style={{ color: 'hsl(var(--primary))', flexShrink: 0 }} />
+              <p style={{ fontSize: '11px', color: 'var(--muted-foreground)', lineHeight: '1.3' }}>
+                화면 좌측 이미지의 동그라미 조절점(●)을 마우스나 손가락으로 드래그하면 실측 치수가 실시간으로 갱신됩니다.
+              </p>
+            </div>
+
+            <div className={styles.actionRow}>
+              <button 
+                className="glow-btn-secondary" 
+                style={{ flex: 1 }}
+                onClick={() => setStep(2)}
+                disabled={isLoading}
+              >
+                재보정하기
+              </button>
+              <button 
+                className="glow-btn" 
+                style={{ flex: 1.5 }}
+                onClick={handleSave}
+                disabled={isLoading}
+              >
+                <Save size={16} /> 옷장에 저장하기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
