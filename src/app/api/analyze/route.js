@@ -123,41 +123,66 @@ Schema:
 }
 `;
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                { text: prompt },
+    const modelsToTry = [
+      'gemini-2.5-flash',
+      'gemini-2.0-flash',
+      'gemini-2.5-flash-lite'
+    ];
+
+    let lastError = null;
+    let responseText = null;
+
+    // Retry loop through available models to bypass 503 (high demand) or 429 (rate limits)
+    for (const modelName of modelsToTry) {
+      try {
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1/models/${modelName}:generateContent?key=${apiKey}`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              contents: [
                 {
-                  inlineData: {
-                    mimeType: 'image/jpeg',
-                    data: base64Data,
-                  },
+                  parts: [
+                    { text: prompt },
+                    {
+                      inlineData: {
+                        mimeType: 'image/jpeg',
+                        data: base64Data,
+                      },
+                    },
+                  ],
                 },
               ],
-            },
-          ],
-        }),
-      }
-    );
+            }),
+          }
+        );
 
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`Gemini API responded with status ${response.status}: ${errText}`);
+        if (!response.ok) {
+          const errText = await response.text();
+          throw new Error(`${modelName} responded with status ${response.status}: ${errText}`);
+        }
+
+        const resJson = await response.json();
+        responseText = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
+
+        if (responseText) {
+          // Success! Break out of the retry loop
+          console.log(`Successfully analyzed image using model: ${modelName}`);
+          break;
+        } else {
+          throw new Error(`${modelName} returned empty content`);
+        }
+      } catch (err) {
+        console.warn(`Model ${modelName} failed, trying next fallback. Error: ${err.message}`);
+        lastError = err;
+      }
     }
 
-    const resJson = await response.json();
-    const responseText = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
-
     if (!responseText) {
-      throw new Error('Empty response received from Gemini API');
+      throw new Error(`All Gemini models failed. Last error: ${lastError?.message || 'Unknown'}`);
     }
 
     // Strip markdown code fences (like ```json ... ```) if returned by the model
