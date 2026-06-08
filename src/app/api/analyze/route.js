@@ -144,9 +144,6 @@ Schema:
               ],
             },
           ],
-          generation_config: {
-            response_mime_type: 'application/json',
-          },
         }),
       }
     );
@@ -163,7 +160,13 @@ Schema:
       throw new Error('Empty response received from Gemini API');
     }
 
-    const result = JSON.parse(responseText.trim());
+    // Strip markdown code fences (like ```json ... ```) if returned by the model
+    let cleanText = responseText.trim();
+    if (cleanText.startsWith('```')) {
+      cleanText = cleanText.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+    }
+
+    const result = JSON.parse(cleanText.trim());
     return NextResponse.json(result);
 
   } catch (error) {
