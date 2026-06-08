@@ -317,22 +317,32 @@ export default function AdminPage() {
       });
 
       if (!aiResponse.ok) {
-        throw new Error('Gemini API 분석 요청 실패');
+        let errMsg = 'Gemini API 분석 요청 실패';
+        try {
+          const errData = await aiResponse.json();
+          if (errData.error) errMsg = `AI 분석 오류: ${errData.error}`;
+        } catch (_) {}
+        throw new Error(errMsg);
       }
 
       const aiData = await aiResponse.json();
 
+      // Defensive parsing to prevent crashes from incomplete AI JSON structures
+      const detectedCategory = aiData.category || '상의';
+      const detectedColor = aiData.color || '네이비';
+      const detectedStyle = aiData.style || '체육복';
+      const ms = aiData.measurements || {};
+      const gl = aiData.guidelines || {};
+
       // Populate form values
-      setName(`${style} ${aiData.category} (자동 태깅)`);
-      setCategory(aiData.category);
-      setColor(aiData.color);
-      setStyle(aiData.style);
+      setName(`${detectedStyle} ${detectedCategory} (자동 태깅)`);
+      setCategory(detectedCategory);
+      setColor(detectedColor);
+      setStyle(detectedStyle);
 
       // Initialize handle coordinates based on Gemini analysis
-      if (aiData.category === '하의') {
-        const gl = aiData.guidelines;
-        const ms = aiData.measurements;
-        const w_half = ms.waist ? ms.waist / 2 : 15;
+      if (detectedCategory === '하의') {
+        const w_half = ms.waist ? Number(ms.waist) / 2 : 15;
         
         setLineHandles(prev => ({
           ...prev,
@@ -340,10 +350,8 @@ export default function AdminPage() {
           pantsLength: { x1: 50, y1: gl.length_start_y || 15, x2: 50, y2: gl.length_end_y || 92 }
         }));
       } else {
-        const gl = aiData.guidelines;
-        const ms = aiData.measurements;
-        const s_half = ms.shoulder ? ms.shoulder / 2 : 20;
-        const c_half = ms.chest ? ms.chest / 2 : 23;
+        const s_half = ms.shoulder ? Number(ms.shoulder) / 2 : 20;
+        const c_half = ms.chest ? Number(ms.chest) / 2 : 23;
         
         setLineHandles(prev => ({
           ...prev,
@@ -357,7 +365,7 @@ export default function AdminPage() {
       setStep(3);
     } catch (e) {
       console.error(e);
-      triggerToast('이미지 처리 및 AI 분석 과정 중 오류가 발생했습니다.');
+      triggerToast(e.message || '이미지 처리 및 AI 분석 과정 중 오류가 발생했습니다.');
     } finally {
       setIsLoading(false);
     }
