@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
-  Upload, Camera, Check, RotateCcw, Scissors, 
+  Upload, Camera, Check, RotateCcw, RotateCw, Scissors, 
   Maximize2, Save, Loader2, Sparkles, Sliders, ArrowLeft, Info
 } from 'lucide-react';
 import styles from './admin.module.css';
@@ -13,6 +13,7 @@ export default function AdminPage() {
   const router = useRouter();
   const [step, setStep] = useState(1); // 1: Upload, 2: Calibration/Chroma, 3: Edit/Save
   const [imageSrc, setImageSrc] = useState(null);
+  const [rotation, setRotation] = useState(0); // 0, 90, 180, 270 (Degrees to rotate image clockwise)
   
   // Chroma Key Settings
   const [chromaMode, setChromaMode] = useState('green'); // 'green', 'blue', 'none'
@@ -75,9 +76,15 @@ export default function AdminPage() {
     reader.onload = (event) => {
       setImageSrc(event.target.result);
       setMarkers([]); // Reset markers
+      setRotation(0); // Reset rotation for new image
       setStep(2);
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleRotate = () => {
+    setRotation(prev => (prev + 90) % 360);
+    setMarkers([]); // Reset markers since coordinate mapping orientation changed
   };
 
   // Draw setup canvas (original image + chroma key + markers overlay)
@@ -91,29 +98,38 @@ export default function AdminPage() {
       const originalCanvas = originalCanvasRef.current;
       if (!canvas || !originalCanvas) return;
 
-      // Set original canvas dimensions to actual image size (for processing)
-      originalCanvas.width = img.width;
-      originalCanvas.height = img.height;
+      const isRotated = rotation === 90 || rotation === 270;
+      const targetWidth = isRotated ? img.height : img.width;
+      const targetHeight = isRotated ? img.width : img.height;
+
+      // Set original canvas dimensions to rotated image size (for processing)
+      originalCanvas.width = targetWidth;
+      originalCanvas.height = targetHeight;
       const oCtx = originalCanvas.getContext('2d');
-      oCtx.drawImage(img, 0, 0);
+      
+      oCtx.save();
+      oCtx.translate(targetWidth / 2, targetHeight / 2);
+      oCtx.rotate((rotation * Math.PI) / 180);
+      oCtx.drawImage(img, -img.width / 2, -img.height / 2, img.width, img.height);
+      oCtx.restore();
 
       // Set display canvas dimensions
-      const containerWidth = canvas.parentNode.clientWidth;
-      const scale = containerWidth / img.width;
+      const containerWidth = canvas.parentNode?.clientWidth || 400;
+      const scale = containerWidth / targetWidth;
       canvas.width = containerWidth;
-      canvas.height = img.height * scale;
+      canvas.height = targetHeight * scale;
       
-      drawProcessedImage(img, canvas);
+      drawProcessedImage(originalCanvas, canvas);
     };
-  }, [step, imageSrc, chromaMode, tolerance, markers]);
+  }, [step, imageSrc, chromaMode, tolerance, markers, rotation]);
 
   // Apply Chroma-key Background Removal and draw markers on canvas
-  const drawProcessedImage = (img, canvas) => {
+  const drawProcessedImage = (srcCanvas, canvas) => {
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Draw original image on display canvas first
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    // Draw original rotated image on display canvas first
+    ctx.drawImage(srcCanvas, 0, 0, canvas.width, canvas.height);
 
     // If chroma-key is enabled, process pixels
     if (chromaMode !== 'none') {
@@ -309,11 +325,20 @@ export default function AdminPage() {
       const warpedDataURL = destCanvas.toDataURL('image/jpeg', 0.85);
       setWarpedImageSrc(warpedDataURL);
 
-      // 3. Call AI Analysis API with clean warped image
+      // Create a small low-res thumbnail specifically for the Gemini AI analysis payload
+      // This reduces payload size from ~80KB to ~10KB, making API requests nearly instant!
+      const aiCanvas = document.createElement('canvas');
+      aiCanvas.width = 250;
+      aiCanvas.height = 250;
+      const aiCtx = aiCanvas.getContext('2d');
+      aiCtx.drawImage(destCanvas, 0, 0, 250, 250);
+      const aiDataURL = aiCanvas.toDataURL('image/jpeg', 0.5);
+
+      // 3. Call AI Analysis API with the compressed thumbnail
       const aiResponse = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: warpedDataURL, categoryHint: category })
+        body: JSON.stringify({ image: aiDataURL, categoryHint: category })
       });
 
       if (!aiResponse.ok) {
@@ -646,6 +671,22 @@ export default function AdminPage() {
                   />
                 </div>
               )}
+            </div>
+
+            <div>
+              <h3 className={styles.cardSectionTitle}>
+                <RotateCw size={16} /> 사진 방향 회전
+              </h3>
+              <p style={{ fontSize: '12px', color: 'var(--muted-foreground)', marginTop: '8px', lineHeight: '1.4' }}>
+                사진이 옆으로 돌아가서 촬영되었다면 90도씩 회전시켜 똑바로 맞춘 뒤 꼭짓점을 클릭해 주세요:
+              </p>
+              <button 
+                className="glow-btn-secondary" 
+                style={{ width: '100%', marginTop: '10px', padding: '10px' }}
+                onClick={handleRotate}
+              >
+                <RotateCw size={14} /> 시계 방향 90° 회전
+              </button>
             </div>
 
             <div>
