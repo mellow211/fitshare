@@ -656,12 +656,17 @@ export default function AdminPage() {
       {step === 2 && (
         <div className={`${styles.setupGrid} fade-in`}>
           {/* Main Calibration canvas wrapper */}
-          <div className={styles.canvasContainer}>
+          <div className={styles.canvasContainer} style={{ position: 'relative' }}>
             <canvas 
               ref={displayCanvasRef}
               className={styles.interactiveCanvas}
               onClick={handleCanvasClick}
             />
+            {isLoading && (
+              <div className="scannerOverlay">
+                <div className="scanLine" />
+              </div>
+            )}
           </div>
 
           {/* Control parameters */}

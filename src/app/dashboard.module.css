@@ -246,7 +246,7 @@
 .modalOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(5, 5, 10, 0.85);
+  background: rgba(12, 26, 19, 0.4);
   backdrop-filter: blur(12px);
   display: flex;
   align-items: center;
@@ -263,7 +263,7 @@
   border: 1px solid hsl(var(--card-border));
   border-radius: var(--radius-lg);
   overflow: hidden;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 25px 50px -12px rgba(16, 185, 129, 0.12);
   display: grid;
   grid-template-columns: 1fr 1fr;
   position: relative;

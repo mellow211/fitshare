@@ -1,51 +1,52 @@
-/* Import Outfit and Inter fonts from Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
+/* Import Outfit, Inter, and Gaegu (handwriting style) fonts from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Gaegu:wght@400;700&display=swap');
 
 :root {
-  /* HSL Color Tokens - Dark Eco Theme */
+  /* HSL Color Tokens - Bright Eco Friendly Light Theme */
   --font-sans: 'Inter', sans-serif;
   --font-title: 'Outfit', sans-serif;
+  --font-child: 'Gaegu', cursive, sans-serif;
 
-  --background: 224 71% 4%;
-  --foreground: 210 40% 98%;
+  --background: 140 25% 97%;          /* Soft warm light-green minty background */
+  --foreground: 150 45% 12%;          /* Dark forest green for high readability */
   
-  --card: 224 71% 7%;
-  --card-foreground: 210 40% 98%;
-  --card-border: 224 71% 14%;
+  --card: 0 0% 100%;                  /* Pure white card backgrounds */
+  --card-foreground: 150 45% 12%;
+  --card-border: 140 20% 90%;
   
-  --primary: 142 72% 42%;          /* School Eco Green */
+  --primary: 142 68% 36%;             /* Trustworthy Eco Green (#15803d) */
   --primary-foreground: 144 80% 98%;
   
-  --secondary: 199 89% 48%;        /* School Sky Blue */
+  --secondary: 199 89% 48%;           /* Playful Sky Blue */
   --secondary-foreground: 200 100% 99%;
   
-  --accent: 263 90% 51%;           /* Vibrant Violet */
-  --accent-foreground: 210 40% 98%;
+  --accent: 38 92% 50%;               /* Warm Sunshine Yellow */
+  --accent-foreground: 150 45% 12%;
   
-  --muted: 224 71% 15%;
-  --muted-foreground: 215 20.2% 65.1%;
+  --muted: 140 20% 93%;               /* Light grey-green for muted elements */
+  --muted-foreground: 150 15% 42%;
   
-  --border: 224 71% 12%;
-  --ring: 142 72% 42%;
+  --border: 140 20% 88%;
+  --ring: 142 68% 36%;
   
-  --success: 142 72% 29%;
+  --success: 142 68% 36%;
   --warning: 38 92% 50%;
-  --danger: 346 84% 61%;
+  --danger: 350 80% 55%;
 
-  /* Neon Guideline Colors for clothing measurements */
-  --neon-shoulder: 327 100% 60%;  /* Neon Pink */
-  --neon-chest: 180 100% 50%;     /* Neon Cyan */
-  --neon-sleeve: 60 100% 50%;      /* Neon Yellow */
-  --neon-length: 271 91% 65%;      /* Neon Purple */
+  /* Measurement guidelines overlay - vibrant but distinct on white/light backgrounds */
+  --neon-shoulder: 340 85% 55%;       /* Lovely Rose Pink */
+  --neon-chest: 195 90% 45%;          /* Cool Sky Blue */
+  --neon-sleeve: 42 90% 45%;          /* Warm Amber */
+  --neon-length: 271 75% 55%;         /* Rich Violet */
 
-  --radius-lg: 16px;
-  --radius-md: 12px;
-  --radius-sm: 8px;
+  --radius-lg: 24px;                  /* More rounded corners for kids safety and friendly look */
+  --radius-md: 16px;
+  --radius-sm: 10px;
 
-  /* Glassmorphism styling variables */
-  --glass-bg: rgba(10, 15, 30, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --glass-shadow: rgba(0, 0, 0, 0.35);
+  /* Glassmorphism light styling variables */
+  --glass-bg: rgba(255, 255, 255, 0.75);
+  --glass-border: rgba(255, 255, 255, 0.5);
+  --glass-shadow: rgba(16, 185, 129, 0.08); /* Mint glow shadow */
 }
 
 /* Reset and base styles */
@@ -59,7 +60,8 @@
 
 body {
   font-family: var(--font-sans);
-  background-color: hsl(var(--background));
+  background: linear-gradient(135deg, hsl(var(--background)) 0%, #e8f5ed 100%);
+  background-attachment: fixed;
   color: hsl(var(--foreground));
   min-height: 100vh;
   display: flex;
@@ -71,7 +73,7 @@ body {
 
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-title);
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: -0.02em;
 }
 
@@ -105,30 +107,30 @@ button, input, select, textarea {
 /* Premium Layout & Glass Container utility */
 .glass-panel {
   background: var(--glass-bg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--glass-border);
-  box-shadow: 0 8px 32px 0 var(--glass-shadow);
+  box-shadow: 0 12px 40px 0 var(--glass-shadow);
   border-radius: var(--radius-lg);
 }
 
 .gradient-text {
-  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--secondary)) 100%);
+  background: linear-gradient(135deg, hsl(var(--primary)) 0%, #0d9488 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .glow-btn {
-  background: linear-gradient(135deg, hsl(var(--primary)) 0%, #16a34a 100%);
-  color: hsl(var(--primary-foreground));
-  font-weight: 600;
+  background: linear-gradient(135deg, #22c55e 0%, hsl(var(--primary)) 100%);
+  color: #ffffff;
+  font-weight: 700;
   font-family: var(--font-title);
   border-radius: var(--radius-md);
   padding: 12px 24px;
   cursor: pointer;
-  box-shadow: 0 4px 14px 0 rgba(34, 197, 94, 0.3);
-  transition: all 0.3s ease;
+  box-shadow: 0 8px 20px 0 rgba(22, 163, 74, 0.15);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -136,47 +138,86 @@ button, input, select, textarea {
 }
 .glow-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px 0 rgba(34, 197, 94, 0.5);
-  filter: brightness(1.1);
+  box-shadow: 0 12px 24px 0 rgba(22, 163, 74, 0.25);
+  filter: brightness(1.05);
 }
 .glow-btn:active {
   transform: translateY(0);
 }
 
 .glow-btn-secondary {
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid hsl(var(--card-border));
   color: hsl(var(--foreground));
-  font-weight: 600;
+  font-weight: 700;
   font-family: var(--font-title);
   border-radius: var(--radius-md);
   padding: 12px 24px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
 }
 .glow-btn-secondary:hover {
   background: hsl(var(--muted));
-  border-color: hsl(var(--muted-foreground) / 0.3);
+  border-color: hsl(var(--border));
+  transform: translateY(-1px);
 }
 
 /* Animations */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes pulseGlow {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
+  0%, 100% { transform: scale(0.98); filter: drop-shadow(0 0 5px rgba(22,163,74,0.2)); }
+  50% { transform: scale(1.02); filter: drop-shadow(0 0 12px rgba(22,163,74,0.4)); }
 }
 
 @keyframes skeletonLoad {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
+}
+
+/* AI Scanning Animation keys */
+@keyframes scanMove {
+  0% { top: 0%; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+
+@keyframes scanPulse {
+  0% { transform: scale(0.99); box-shadow: inset 0 0 15px rgba(22, 163, 74, 0.1); }
+  50% { transform: scale(1.01); box-shadow: inset 0 0 30px rgba(22, 163, 74, 0.25); }
+  100% { transform: scale(0.99); box-shadow: inset 0 0 15px rgba(22, 163, 74, 0.1); }
+}
+
+.scannerOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(22, 163, 74, 0.03);
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 5;
+  border-radius: inherit;
+  border: 2px solid rgba(22, 163, 74, 0.2);
+  animation: scanPulse 2s ease-in-out infinite;
+}
+
+.scanLine {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 6px;
+  background: linear-gradient(90deg, transparent, #22c55e, transparent);
+  box-shadow: 0 0 15px 3px #22c55e;
+  animation: scanMove 2.5s linear infinite;
+  pointer-events: none;
 }
 
 .fade-in {
@@ -191,42 +232,46 @@ button, input, select, textarea {
 
 /* Base Form Input styles */
 .input-field {
-  background: hsl(var(--muted));
+  background: rgba(255, 255, 255, 0.9);
   border: 1px solid hsl(var(--border));
   color: hsl(var(--foreground));
   border-radius: var(--radius-sm);
   padding: 10px 14px;
   font-size: 14px;
+  font-weight: 500;
   transition: all 0.2s ease;
   width: 100%;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
 }
 .input-field:focus {
   border-color: hsl(var(--primary));
-  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2);
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
+  background: #ffffff;
 }
 
 /* Floating Banner/Badge */
 .badge {
-  padding: 4px 8px;
+  padding: 6px 12px;
   border-radius: 9999px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
   display: inline-flex;
   align-items: center;
-  letter-spacing: 0.05em;
+  gap: 4px;
+  letter-spacing: 0.02em;
 }
 
 .badge-available {
-  background-color: hsl(var(--primary) / 0.15);
-  color: #4ade80;
-  border: 1px solid hsl(var(--primary) / 0.3);
+  background-color: rgba(22, 163, 74, 0.08);
+  color: #16a34a;
+  border: 1px solid rgba(22, 163, 74, 0.2);
 }
 
 .badge-reserved {
-  background-color: hsl(var(--warning) / 0.15);
-  color: #fbbf24;
-  border: 1px solid hsl(var(--warning) / 0.3);
+  background-color: rgba(202, 138, 4, 0.08);
+  color: #ca8a04;
+  border: 1px solid rgba(202, 138, 4, 0.2);
 }
 
 .badge-completed {
@@ -259,6 +304,6 @@ button, input, select, textarea {
   border-radius: var(--radius-sm);
   font-size: 12px;
   white-space: nowrap;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
   z-index: 100;
 }

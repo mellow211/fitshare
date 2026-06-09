@@ -317,11 +317,31 @@ export default function DashboardPage() {
   if (!isSpaceLoaded) {
     return (
       <div className={styles.welcomeCard}>
+        {/* Playful Eco-Friendly Welcome SVG Illustration */}
+        <svg width="140" height="140" viewBox="0 0 120 120" fill="none" style={{ margin: '0 auto 20px auto', display: 'block', filter: 'drop-shadow(0 8px 16px rgba(16,185,129,0.15))' }}>
+          <circle cx="60" cy="60" r="54" fill="#e8f5ed" />
+          {/* Main Closet frame */}
+          <rect x="35" y="35" width="50" height="55" rx="8" fill="#ffffff" stroke="#16a34a" strokeWidth="3" />
+          <line x1="60" y1="35" x2="60" y2="90" stroke="#16a34a" strokeWidth="2" />
+          <circle cx="53" cy="62" r="3" fill="#16a34a" />
+          <circle cx="67" cy="62" r="3" fill="#16a34a" />
+          
+          {/* Eco Leaves growing out of closet */}
+          <path d="M60 25C60 25 70 18 78 26C78 26 70 34 60 25Z" fill="#22c55e" />
+          <path d="M60 25C60 25 50 18 42 26C42 26 50 34 60 25Z" fill="#22c55e" />
+          <line x1="60" y1="25" x2="60" y2="35" stroke="#16a34a" strokeWidth="2.5" />
+          
+          {/* Small clothes hanger floating */}
+          <path d="M30 45C30 45 20 50 22 56C24 60 38 60 38 60" stroke="#0ea5e9" strokeWidth="2.5" strokeLinecap="round" />
+          <path d="M90 45C90 45 100 50 98 56C96 60 82 60 82 60" stroke="#0ea5e9" strokeWidth="2.5" strokeLinecap="round" />
+          <path d="M30 45C32 40 38 40 40 45" stroke="#0ea5e9" strokeWidth="2" />
+        </svg>
+
         <h1 className={styles.welcomeTitle}>
-          🎒 <span className="gradient-text">FitShare</span> 나눔 옷장
+          🌱 <span className="gradient-text">우리 학교 스마트 옷장</span>
         </h1>
         <p className={styles.welcomeDesc}>
-          초등학교에서 작아져 사용하지 않는 교복과 체육복을 나눔하고 재활용하는 클라우드 의류 옷장 플랫폼입니다. 학교나 지자체의 공동 옷장 코드를 입력하세요.
+          작아져서 못 입는 교복과 체육복을 나눔하고 재활용하는 따뜻한 친환경 옷장입니다. 우리 학교 전용 코드를 입력하고 들어가 보세요!
         </p>
         <form onSubmit={handleJoinSpace}>
           <div className={styles.spaceInputRow}>
@@ -331,14 +351,14 @@ export default function DashboardPage() {
               onChange={(e) => setEnteredSpaceCode(e.target.value)} 
               placeholder="예: seosol-elementary" 
               className="input-field"
-              style={{ padding: '12px 18px', fontSize: '15px' }}
+              style={{ padding: '14px 20px', fontSize: '15px', borderRadius: 'var(--radius-md)' }}
             />
-            <button type="submit" className="glow-btn" style={{ padding: '12px 28px' }}>
-              옷장 입장
+            <button type="submit" className="glow-btn" style={{ padding: '14px 28px', borderRadius: 'var(--radius-md)' }}>
+              옷장 구경하기 🎒
             </button>
           </div>
         </form>
-        <p style={{ marginTop: '20px', fontSize: '12px', color: 'var(--muted-foreground)' }}>
+        <p style={{ marginTop: '22px', fontSize: '12px', color: 'hsl(var(--muted-foreground))' }}>
           * 입력하지 않을 시 기본 체험용 옷장(default-wardrobe)으로 입장합니다.
         </p>
       </div>
@@ -363,27 +383,62 @@ export default function DashboardPage() {
       <div className={styles.header}>
         <div className={styles.brand}>
           <h1 className={styles.mainTitle}>
-            🎒 FitShare <span className="gradient-text">나눔 옷장</span>
+            🎒 FitShare <span className="gradient-text">우리 학교 옷장</span>
           </h1>
           <p className={styles.subtitle}>
-            <MapPin size={14} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'middle' }} />
-            접속 옷장: <strong style={{ color: 'hsl(var(--foreground))' }}>{spaceCode}</strong>
+            <MapPin size={14} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'middle', color: 'hsl(var(--primary))' }} />
+            현재 학교 옷장: <strong style={{ color: 'hsl(var(--primary))' }}>{spaceCode}</strong> 🟢
           </p>
         </div>
 
         <div className={styles.actionRow}>
           <button className="glow-btn-secondary" onClick={() => setIsQRModalOpen(true)}>
-            <Smartphone size={16} /> 촬영 기기 연동 (QR)
+            <Smartphone size={16} /> 📱 모바일 연동 QR
           </button>
           <button className="glow-btn-secondary" onClick={() => router.push('/admin')}>
-            <ClipboardList size={16} /> 새 의류 등록 (관리자)
+            <ClipboardList size={16} /> 🧺 옷 기부하기 (등록)
           </button>
           <button className="glow-btn-secondary" style={{ padding: '10px' }} onClick={loadClothes}>
             <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
           </button>
-          <button className="glow-btn-secondary" onClick={handleLeaveSpace} style={{ border: '1px solid hsl(var(--danger)/0.4)', color: 'hsl(var(--danger))' }}>
+          <button className="glow-btn-secondary" onClick={handleLeaveSpace} style={{ border: '1px solid hsl(var(--danger)/0.2)', color: 'hsl(var(--danger))' }}>
             옷장 나가기
           </button>
+        </div>
+      </div>
+
+      {/* Mascot Guidance Widget */}
+      <div className={styles.mascotWidget} style={{ display: 'flex', gap: '20px', alignItems: 'center', background: 'rgba(255, 255, 255, 0.95)', border: '1px solid hsl(var(--card-border))', borderRadius: 'var(--radius-lg)', padding: '22px 26px', marginBottom: '30px', boxShadow: '0 8px 30px rgba(16,185,129,0.05)' }}>
+        <div style={{ flexShrink: 0, position: 'relative' }}>
+          {/* Cute leaf mascot Choroki */}
+          <svg width="68" height="68" viewBox="0 0 64 64" fill="none">
+            <circle cx="32" cy="36" r="24" fill="#e8f5ed" stroke="#16a34a" strokeWidth="3" />
+            {/* Leaf ears */}
+            <path d="M22 16C18 10 26 6 30 12C28 16 24 18 22 16Z" fill="#16a34a" />
+            <path d="M42 16C46 10 38 6 34 12C36 16 40 18 42 16Z" fill="#16a34a" />
+            {/* Eyes */}
+            <circle cx="23" cy="34" r="3" fill="#0c1a13" />
+            <circle cx="41" cy="34" r="3" fill="#0c1a13" />
+            {/* Blushing cheeks */}
+            <circle cx="18" cy="38" r="3" fill="#f43f5e" fillOpacity="0.4" />
+            <circle cx="46" cy="38" r="3" fill="#f43f5e" fillOpacity="0.4" />
+            {/* Smile */}
+            <path d="M28 41C28 41 30 44 32 44C34 44 36 41 36 41" stroke="#0c1a13" strokeWidth="2" strokeLinecap="round" />
+            {/* Mini Graduation cap */}
+            <path d="M26 19L32 16L38 19L32 22L26 19Z" fill="#ca8a04" />
+            <rect x="30" y="20" width="4" height="2" fill="#ca8a04" />
+          </svg>
+          <span style={{ position: 'absolute', bottom: '-4px', right: '-4px', background: '#22c55e', color: 'white', borderRadius: '50%', width: '22px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 'bold' }}>🌱</span>
+        </div>
+        <div>
+          <h3 style={{ fontSize: '16px', fontWeight: '800', color: 'hsl(var(--primary))', fontFamily: 'var(--font-title)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            안녕! 나는 스마트 옷장의 도우미 '초록이'야!
+          </h3>
+          <p style={{ fontSize: '13px', color: 'hsl(var(--muted-foreground))', marginTop: '5px', lineHeight: '1.5' }}>
+            우리 학교 선배, 후배들이 입던 소중한 옷들을 함께 나누어 지구 온도도 낮추고, 
+            가족의 의류비도 아낄 수 있어! 아래 **'내 아이 맞춤 사이즈 필터'**를 눌러 키와 몸무게를 입력하면 
+            예쁘게 잘 맞는 옷들을 AI가 쏙쏙 골라줄게! 🏫✨
+          </p>
         </div>
       </div>
 
@@ -391,16 +446,16 @@ export default function DashboardPage() {
       <div className={styles.matcherPanel}>
         <div 
           className={styles.matcherTitle} 
-          style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between' }}
+          style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', userSelect: 'none' }}
           onClick={() => setIsMatcherOpen(!isMatcherOpen)}
         >
           <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Ruler size={18} style={{ color: 'hsl(var(--secondary))' }} /> 
-            내 자녀 체형 맞춤 사이즈 필터 {isMatcherOpen ? '▲' : '▼'}
+            <Ruler size={18} style={{ color: 'hsl(var(--primary))' }} /> 
+            내 아이 맞춤 사이즈 매칭 필터 {isMatcherOpen ? '▲' : '▼'}
           </span>
           {childSize.height && (
-            <span style={{ fontSize: '13px', color: 'hsl(var(--primary))', fontWeight: '600' }}>
-              자녀 키: {childSize.height}cm / 몸무게: {childSize.weight}kg 설정됨
+            <span style={{ fontSize: '13px', color: 'hsl(var(--primary))', fontWeight: '700' }}>
+              자녀 키: {childSize.height}cm / 몸무게: {childSize.weight}kg 설정 완료 🎯
             </span>
           )}
         </div>
@@ -409,7 +464,7 @@ export default function DashboardPage() {
           <div className="fade-in" style={{ marginTop: '20px' }}>
             <div className={styles.matcherInputs}>
               <div>
-                <label className={styles.formLabel}>키 (cm)</label>
+                <label className={styles.formLabel}>아이 키 (cm)</label>
                 <input 
                   type="number" 
                   value={childSize.height} 
@@ -419,7 +474,7 @@ export default function DashboardPage() {
                 />
               </div>
               <div>
-                <label className={styles.formLabel}>몸무게 (kg)</label>
+                <label className={styles.formLabel}>아이 몸무게 (kg)</label>
                 <input 
                   type="number" 
                   value={childSize.weight} 
@@ -470,14 +525,14 @@ export default function DashboardPage() {
               </div>
             </div>
             
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--muted-foreground)' }}>
-                <Info size={14} style={{ color: 'hsl(var(--secondary))' }} />
-                <span>키와 몸무게를 입력하면 표준 성장에 따른 아이의 실측 어깨/가슴/허리 치수가 자동 추정되어 채워집니다.</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', flexWrap: 'wrap', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'hsl(var(--muted-foreground))' }}>
+                <Info size={14} style={{ color: 'hsl(var(--primary))', flexShrink: 0 }} />
+                <span>키와 몸무게를 입력하면 표준 신체 치수가 자동 설정되며, 자녀보다 너무 작거나 비추천하는 크기의 옷은 똑똑하게 필터링됩니다.</span>
               </div>
               {childSize.height && (
-                <button className="glow-btn-secondary" style={{ padding: '8px 16px', fontSize: '12px' }} onClick={handleClearSizes}>
-                  필터 초기화
+                <button className="glow-btn-secondary" style={{ padding: '8px 16px', fontSize: '12px', borderRadius: 'var(--radius-sm)' }} onClick={handleClearSizes}>
+                  필터 지우기 🔄
                 </button>
               )}
             </div>
@@ -493,45 +548,45 @@ export default function DashboardPage() {
               type="text" 
               value={searchQuery} 
               onChange={(e) => setSearchQuery(e.target.value)} 
-              placeholder="의류명 또는 색상 검색..." 
+              placeholder="의류 이름 또는 색상 검색..." 
               className="input-field"
-              style={{ paddingLeft: '36px' }}
+              style={{ paddingLeft: '38px', borderRadius: 'var(--radius-md)' }}
             />
-            <Search size={16} style={{ position: 'absolute', left: '12px', top: '12px', color: 'var(--muted-foreground)' }} />
+            <Search size={16} style={{ position: 'absolute', left: '14px', top: '13px', color: 'hsl(var(--muted-foreground))' }} />
           </div>
         </div>
 
         <div className={styles.tagFilters}>
           {/* Category Filters */}
-          {['전체', '상의', '하의', '아우터'].map(cat => (
+          {[['전체', '전체 🌈'], ['상의', '상의 👕'], ['하의', '하의 👖'], ['아우터', '아우터 🧥']].map(([key, label]) => (
             <button 
-              key={cat} 
-              className={`${styles.filterTag} ${selectedCategory === cat ? styles.filterTagActive : ''}`}
-              onClick={() => setSelectedCategory(cat)}
+              key={key} 
+              className={`${styles.filterTag} ${selectedCategory === key ? styles.filterTagActive : ''}`}
+              onClick={() => setSelectedCategory(key)}
             >
-              {cat}
+              {label}
             </button>
           ))}
-          <div style={{ width: '1px', background: 'hsl(var(--border))', margin: '0 8px' }} />
+          <div style={{ width: '1px', background: 'hsl(var(--border))', margin: '0 4px' }} />
           {/* Style Filters */}
-          {['전체', '교복', '체육복', '일상복'].map(st => (
+          {[['전체', '전체 💫'], ['교복', '교복 👔'], ['체육복', '체육복 🏃'], ['일상복', '일상복 🧸']].map(([key, label]) => (
             <button 
-              key={st} 
-              className={`${styles.filterTag} ${selectedStyle === st ? styles.filterTagActive : ''}`}
-              onClick={() => setSelectedStyle(st)}
+              key={key} 
+              className={`${styles.filterTag} ${selectedStyle === key ? styles.filterTagActive : ''}`}
+              onClick={() => setSelectedStyle(key)}
             >
-              {st === '전체' ? '스타일 전체' : st}
+              {label}
             </button>
           ))}
-          <div style={{ width: '1px', background: 'hsl(var(--border))', margin: '0 8px' }} />
+          <div style={{ width: '1px', background: 'hsl(var(--border))', margin: '0 4px' }} />
           {/* Status Filters */}
-          {['전체', 'available', 'reserved'].map(stat => (
+          {[['전체', '전체 🏷️'], ['available', '신청가능 🌱'], ['reserved', '예약됨 🔒']].map(([key, label]) => (
             <button 
-              key={stat} 
-              className={`${styles.filterTag} ${selectedStatus === stat ? styles.filterTagActive : ''}`}
-              onClick={() => setSelectedStatus(stat)}
+              key={key} 
+              className={`${styles.filterTag} ${selectedStatus === key ? styles.filterTagActive : ''}`}
+              onClick={() => setSelectedStatus(key)}
             >
-              {stat === '전체' ? '상태 전체' : stat === 'available' ? '분양가능' : '예약됨'}
+              {label}
             </button>
           ))}
         </div>
@@ -541,7 +596,7 @@ export default function DashboardPage() {
       {isLoading ? (
         <div className={styles.autoGrid}>
           {[1, 2, 3, 4].map(idx => (
-            <div key={idx} className="glass-panel" style={{ height: '380px', display: 'flex', flexDirection: 'column' }}>
+            <div key={idx} className="glass-panel" style={{ height: '390px', display: 'flex', flexDirection: 'column' }}>
               <div className="skeleton" style={{ height: '240px', width: '100%' }} />
               <div style={{ padding: '16px', flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <div className="skeleton" style={{ height: '14px', width: '40%' }} />
@@ -553,10 +608,10 @@ export default function DashboardPage() {
         </div>
       ) : filteredClothes.length === 0 ? (
         <div className={styles.emptyState}>
-          <ShoppingBag size={48} style={{ color: 'hsl(var(--muted-foreground))' }} />
-          <h3 style={{ fontSize: '18px', fontWeight: '700' }}>해당하는 옷이 없습니다.</h3>
+          <ShoppingBag size={48} style={{ color: 'hsl(var(--primary))', opacity: 0.6 }} />
+          <h3 style={{ fontSize: '18px', fontWeight: '800' }}>여기에 알맞은 옷이 아직 없어요.</h3>
           <p style={{ color: 'hsl(var(--muted-foreground))', fontSize: '13px' }}>
-            필터 조건을 변경하거나 관리자 페이지에서 촬영한 새로운 옷을 등록해 보세요!
+            필터 조건을 변경하거나 모바일 화면을 통해 아이가 입던 깨끗한 옷을 먼저 기부해 주세요!
           </p>
         </div>
       ) : (
@@ -568,14 +623,14 @@ export default function DashboardPage() {
                 {/* Image wrapper */}
                 <div className={styles.imageWrapper}>
                   <span className={`${styles.statusBadge} badge ${cloth.status === 'available' ? 'badge-available' : 'badge-reserved'}`}>
-                    {cloth.status === 'available' ? '분양 가능' : '예약 완료'}
+                    {cloth.status === 'available' ? '🌱 신청 가능' : '🔒 예약 완료'}
                   </span>
                   <img src={cloth.image_url} alt={cloth.name} className={styles.cardImage} loading="lazy" />
                   
-                  {/* Delete button (convenient for prototype) */}
+                  {/* Delete button */}
                   <button 
                     onClick={(e) => handleDelete(cloth, e)}
-                    style={{ position: 'absolute', bottom: '12px', right: '12px', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', borderRadius: 'var(--radius-sm)', padding: '6px', cursor: 'pointer', zIndex: 10 }}
+                    style={{ position: 'absolute', bottom: '12px', right: '12px', background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.15)', color: '#ef4444', borderRadius: 'var(--radius-sm)', padding: '6px', cursor: 'pointer', zIndex: 10, transition: 'all 0.2s ease' }}
                     title="의류 삭제"
                   >
                     <Trash2 size={14} />
@@ -588,26 +643,26 @@ export default function DashboardPage() {
                   <h3 className={styles.cardName}>{cloth.name}</h3>
 
                   <div className={styles.cardSpecs}>
-                    <span className={styles.specTag}>색상: {cloth.color}</span>
+                    <span className={styles.specTag}>🎨 {cloth.color}</span>
                     {cloth.category === '하의' ? (
                       <>
-                        <span className={styles.specTag}>허리: {cloth.measurements.waist}cm</span>
-                        <span className={styles.specTag}>기장: {cloth.measurements.length}cm</span>
+                        <span className={styles.specTag}>📐 허리: {cloth.measurements.waist}cm</span>
+                        <span className={styles.specTag}>📏 기장: {cloth.measurements.length}cm</span>
                       </>
                     ) : (
                       <>
-                        <span className={styles.specTag}>어깨: {cloth.measurements.shoulder}cm</span>
-                        <span className={styles.specTag}>가슴: {cloth.measurements.chest}cm</span>
-                        <span className={styles.specTag}>총장: {cloth.measurements.length}cm</span>
+                        <span className={styles.specTag}>📐 어깨: {cloth.measurements.shoulder}cm</span>
+                        <span className={styles.specTag}>📐 가슴: {cloth.measurements.chest}cm</span>
+                        <span className={styles.specTag}>📏 총장: {cloth.measurements.length}cm</span>
                       </>
                     )}
                   </div>
 
-                  {/* Compatibility Badge if child size is configured */}
+                  {/* Compatibility Badge */}
                   {comp && (
                     <div className={styles.compatibilityBadge} style={{ color: comp.color }}>
-                      <Ruler size={13} />
-                      <span>{comp.label}</span>
+                      <Ruler size={13} style={{ stroke: comp.color }} />
+                      <span>{comp.label === '예쁘게 잘 맞음' ? '💚 ' + comp.label : comp.label === '여유로움 (성장 대비)' ? '💛 ' + comp.label : '❤️ ' + comp.label}</span>
                     </div>
                   )}
                 </div>
@@ -621,7 +676,7 @@ export default function DashboardPage() {
       {!isLoading && recommendations.length > 0 && (
         <div className={`${styles.recommendSection} fade-in`}>
           <h2 className={styles.recommendTitle}>
-            💡 <span className="gradient-text">오늘의 나눔 코디 조합 추천</span>
+            💡 <span className="gradient-text">초록이가 어울리는 나눔 코디를 골라왔어!</span>
           </h2>
           <div className={styles.recommendGrid}>
             {recommendations.map((combo, idx) => (
@@ -630,24 +685,26 @@ export default function DashboardPage() {
                 <div className={styles.comboItems}>
                   <div className={styles.comboItemThumb} onClick={() => setSelectedCloth(combo.top)}>
                     <img src={combo.top.image_url} alt="Top" className={styles.comboItemImg} />
+                    <span style={{ position: 'absolute', bottom: '6px', left: '6px', fontSize: '10px', background: 'rgba(0,0,0,0.6)', color: 'white', padding: '2px 6px', borderRadius: '4px' }}>상의</span>
                   </div>
                   <div className={styles.comboItemThumb} onClick={() => setSelectedCloth(combo.bottom)}>
                     <img src={combo.bottom.image_url} alt="Bottom" className={styles.comboItemImg} />
+                    <span style={{ position: 'absolute', bottom: '6px', left: '6px', fontSize: '10px', background: 'rgba(0,0,0,0.6)', color: 'white', padding: '2px 6px', borderRadius: '4px' }}>하의</span>
                   </div>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
-                  <div style={{ fontSize: '12px', color: 'var(--muted-foreground)' }}>
-                    추천 신장: <strong>{combo.estHeight}cm 내외</strong>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ fontSize: '12px', color: 'hsl(var(--muted-foreground))' }}>
+                    추천 자녀 키: <strong>{combo.estHeight}cm 내외</strong>
                   </div>
                   <button 
                     className="glow-btn" 
-                    style={{ padding: '8px 16px', fontSize: '12px' }}
+                    style={{ padding: '8px 16px', fontSize: '12px', borderRadius: 'var(--radius-sm)' }}
                     onClick={() => {
                       setSelectedCloth(combo.top);
-                      triggerToast('상의 상세 정보 창을 띄웠습니다. 확인 후 분양받으세요!');
+                      triggerToast('상의 상세 정보를 먼저 열어드릴게요! 확인 후 둘 다 분양받으세요.');
                     }}
                   >
-                    조합 확인하기
+                    세트 확인하기 👉
                   </button>
                 </div>
               </div>
@@ -680,16 +737,16 @@ export default function DashboardPage() {
                       x1={50 - selectedCloth.measurements.waist / 2} y1={selectedCloth.guidelines.waist_y} 
                       x2={50 + selectedCloth.measurements.waist / 2} y2={selectedCloth.guidelines.waist_y}
                       stroke="hsl(var(--neon-chest))" 
-                      strokeWidth={hoveredSpec === 'waist' ? '2.5' : '1.5'}
-                      style={{ filter: hoveredSpec === 'waist' ? 'drop-shadow(0 0 5px hsl(var(--neon-chest)))' : 'none', transition: 'all 0.2s ease' }}
+                      strokeWidth={hoveredSpec === 'waist' ? '3.5' : '2'}
+                      style={{ filter: hoveredSpec === 'waist' ? 'drop-shadow(0 0 6px hsl(var(--neon-chest)))' : 'none', transition: 'all 0.2s ease' }}
                     />
                     {/* Length Line */}
                     <line 
                       x1={50} y1={selectedCloth.guidelines.length_start_y} 
                       x2={50} y2={selectedCloth.guidelines.length_end_y}
                       stroke="hsl(var(--neon-length))" 
-                      strokeWidth={hoveredSpec === 'length' ? '2.5' : '1.5'}
-                      style={{ filter: hoveredSpec === 'length' ? 'drop-shadow(0 0 5px hsl(var(--neon-length)))' : 'none', transition: 'all 0.2s ease' }}
+                      strokeWidth={hoveredSpec === 'length' ? '3.5' : '2'}
+                      style={{ filter: hoveredSpec === 'length' ? 'drop-shadow(0 0 6px hsl(var(--neon-length)))' : 'none', transition: 'all 0.2s ease' }}
                     />
                   </>
                 ) : (
@@ -699,32 +756,32 @@ export default function DashboardPage() {
                       x1={50 - selectedCloth.measurements.shoulder / 2} y1={selectedCloth.guidelines.shoulder_y} 
                       x2={50 + selectedCloth.measurements.shoulder / 2} y2={selectedCloth.guidelines.shoulder_y}
                       stroke="hsl(var(--neon-shoulder))" 
-                      strokeWidth={hoveredSpec === 'shoulder' ? '2.5' : '1.5'}
-                      style={{ filter: hoveredSpec === 'shoulder' ? 'drop-shadow(0 0 5px hsl(var(--neon-shoulder)))' : 'none', transition: 'all 0.2s ease' }}
+                      strokeWidth={hoveredSpec === 'shoulder' ? '3.5' : '2'}
+                      style={{ filter: hoveredSpec === 'shoulder' ? 'drop-shadow(0 0 6px hsl(var(--neon-shoulder)))' : 'none', transition: 'all 0.2s ease' }}
                     />
                     {/* Chest Line */}
                     <line 
                       x1={50 - selectedCloth.measurements.chest / 2} y1={selectedCloth.guidelines.chest_y} 
                       x2={50 + selectedCloth.measurements.chest / 2} y2={selectedCloth.guidelines.chest_y}
                       stroke="hsl(var(--neon-chest))" 
-                      strokeWidth={hoveredSpec === 'chest' ? '2.5' : '1.5'}
-                      style={{ filter: hoveredSpec === 'chest' ? 'drop-shadow(0 0 5px hsl(var(--neon-chest)))' : 'none', transition: 'all 0.2s ease' }}
+                      strokeWidth={hoveredSpec === 'chest' ? '3.5' : '2'}
+                      style={{ filter: hoveredSpec === 'chest' ? 'drop-shadow(0 0 6px hsl(var(--neon-chest)))' : 'none', transition: 'all 0.2s ease' }}
                     />
                     {/* Sleeve Line */}
                     <line 
                       x1={50 - selectedCloth.measurements.shoulder / 2} y1={selectedCloth.guidelines.shoulder_y} 
                       x2={selectedCloth.guidelines.sleeve_end_x} y2={48}
                       stroke="hsl(var(--neon-sleeve))" 
-                      strokeWidth={hoveredSpec === 'sleeve' ? '2.5' : '1.5'}
-                      style={{ filter: hoveredSpec === 'sleeve' ? 'drop-shadow(0 0 5px hsl(var(--neon-sleeve)))' : 'none', transition: 'all 0.2s ease' }}
+                      strokeWidth={hoveredSpec === 'sleeve' ? '3.5' : '2'}
+                      style={{ filter: hoveredSpec === 'sleeve' ? 'drop-shadow(0 0 6px hsl(var(--neon-sleeve)))' : 'none', transition: 'all 0.2s ease' }}
                     />
                     {/* Length Line */}
                     <line 
                       x1={50} y1={selectedCloth.guidelines.length_start_y} 
                       x2={50} y2={selectedCloth.guidelines.length_end_y}
                       stroke="hsl(var(--neon-length))" 
-                      strokeWidth={hoveredSpec === 'length' ? '2.5' : '1.5'}
-                      style={{ filter: hoveredSpec === 'length' ? 'drop-shadow(0 0 5px hsl(var(--neon-length)))' : 'none', transition: 'all 0.2s ease' }}
+                      strokeWidth={hoveredSpec === 'length' ? '3.5' : '2'}
+                      style={{ filter: hoveredSpec === 'length' ? 'drop-shadow(0 0 6px hsl(var(--neon-length)))' : 'none', transition: 'all 0.2s ease' }}
                     />
                   </>
                 )}
@@ -738,7 +795,7 @@ export default function DashboardPage() {
 
               <div className={styles.specSection}>
                 <div className={styles.specRow}>
-                  <span className={styles.specLabel}>기증 코드</span>
+                  <span className={styles.specLabel}>기증 식별 코드</span>
                   <span className={styles.specValue}>{selectedCloth.id.slice(0, 8)}</span>
                 </div>
                 <div className={styles.specRow}>
@@ -746,24 +803,24 @@ export default function DashboardPage() {
                   <span className={styles.specValue}>{selectedCloth.color}</span>
                 </div>
                 <div className={styles.specRow}>
-                  <span className={styles.specLabel}>상태</span>
-                  <span className={styles.specValue} style={{ color: selectedCloth.status === 'available' ? '#4ade80' : '#fbbf24' }}>
-                    {selectedCloth.status === 'available' ? '분양 가능' : '예약 완료'}
+                  <span className={styles.specLabel}>현재 분양 상태</span>
+                  <span className={styles.specValue} style={{ color: selectedCloth.status === 'available' ? 'hsl(var(--primary))' : '#ca8a04' }}>
+                    {selectedCloth.status === 'available' ? '🌱 신청 가능' : '🔒 예약 완료'}
                   </span>
                 </div>
               </div>
 
               {/* Interactive Specification List */}
               <div style={{ marginBottom: '25px' }}>
-                <h4 style={{ fontSize: '13px', fontWeight: '700', marginBottom: '10px', color: 'var(--muted-foreground)' }}>
-                  의류 실측 치수 (마우스 호버 시 치수선 하이라이트)
+                <h4 style={{ fontSize: '13px', fontWeight: '800', marginBottom: '10px', color: 'hsl(var(--muted-foreground))' }}>
+                  의류 실측 치수 (치수선에 마우스를 올리면 옷에 표시선이 비쳐요!)
                 </h4>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {selectedCloth.category === '하의' ? (
                     <>
                       <div 
                         className="glass-panel" 
-                        style={{ padding: '10px 14px', borderLeft: '4px solid hsl(var(--neon-chest))', display: 'flex', justifyContent: 'space-between', cursor: 'pointer' }}
+                        style={{ padding: '10px 14px', borderLeft: '4px solid hsl(var(--neon-chest))', display: 'flex', justifyContent: 'space-between', cursor: 'pointer', borderRadius: 'var(--radius-sm)' }}
                         onMouseEnter={() => setHoveredSpec('waist')}
                         onMouseLeave={() => setHoveredSpec(null)}
                       >
@@ -772,11 +829,11 @@ export default function DashboardPage() {
                       </div>
                       <div 
                         className="glass-panel" 
-                        style={{ padding: '10px 14px', borderLeft: '4px solid hsl(var(--neon-length))', display: 'flex', justifyContent: 'space-between', cursor: 'pointer' }}
+                        style={{ padding: '10px 14px', borderLeft: '4px solid hsl(var(--neon-length))', display: 'flex', justifyContent: 'space-between', cursor: 'pointer', borderRadius: 'var(--radius-sm)' }}
                         onMouseEnter={() => setHoveredSpec('length')}
                         onMouseLeave={() => setHoveredSpec(null)}
                       >
-                        <span>바지 총장</span>
+                        <span>바지 총 기장</span>
                         <strong>{selectedCloth.measurements.length} cm</strong>
                       </div>
                     </>
@@ -784,7 +841,7 @@ export default function DashboardPage() {
                     <>
                       <div 
                         className="glass-panel" 
-                        style={{ padding: '10px 14px', borderLeft: '4px solid hsl(var(--neon-shoulder))', display: 'flex', justifyContent: 'space-between', cursor: 'pointer' }}
+                        style={{ padding: '10px 14px', borderLeft: '4px solid hsl(var(--neon-shoulder))', display: 'flex', justifyContent: 'space-between', cursor: 'pointer', borderRadius: 'var(--radius-sm)' }}
                         onMouseEnter={() => setHoveredSpec('shoulder')}
                         onMouseLeave={() => setHoveredSpec(null)}
                       >
@@ -793,7 +850,7 @@ export default function DashboardPage() {
                       </div>
                       <div 
                         className="glass-panel" 
-                        style={{ padding: '10px 14px', borderLeft: '4px solid hsl(var(--neon-chest))', display: 'flex', justifyContent: 'space-between', cursor: 'pointer' }}
+                        style={{ padding: '10px 14px', borderLeft: '4px solid hsl(var(--neon-chest))', display: 'flex', justifyContent: 'space-between', cursor: 'pointer', borderRadius: 'var(--radius-sm)' }}
                         onMouseEnter={() => setHoveredSpec('chest')}
                         onMouseLeave={() => setHoveredSpec(null)}
                       >
@@ -802,16 +859,16 @@ export default function DashboardPage() {
                       </div>
                       <div 
                         className="glass-panel" 
-                        style={{ padding: '10px 14px', borderLeft: '4px solid hsl(var(--neon-sleeve))', display: 'flex', justifyContent: 'space-between', cursor: 'pointer' }}
+                        style={{ padding: '10px 14px', borderLeft: '4px solid hsl(var(--neon-sleeve))', display: 'flex', justifyContent: 'space-between', cursor: 'pointer', borderRadius: 'var(--radius-sm)' }}
                         onMouseEnter={() => setHoveredSpec('sleeve')}
                         onMouseLeave={() => setHoveredSpec(null)}
                       >
-                        <span>소매 길이</span>
+                        <span>소매 기장</span>
                         <strong>{selectedCloth.measurements.sleeve} cm</strong>
                       </div>
                       <div 
                         className="glass-panel" 
-                        style={{ padding: '10px 14px', borderLeft: '4px solid hsl(var(--neon-length))', display: 'flex', justifyContent: 'space-between', cursor: 'pointer' }}
+                        style={{ padding: '10px 14px', borderLeft: '4px solid hsl(var(--neon-length))', display: 'flex', justifyContent: 'space-between', cursor: 'pointer', borderRadius: 'var(--radius-sm)' }}
                         onMouseEnter={() => setHoveredSpec('length')}
                         onMouseLeave={() => setHoveredSpec(null)}
                       >
@@ -825,8 +882,8 @@ export default function DashboardPage() {
 
               {/* Compare measurements graph */}
               {childSize.height && (
-                <div style={{ marginBottom: '25px', background: 'hsl(var(--muted)/0.3)', padding: '15px', borderRadius: 'var(--radius-md)', border: '1px solid hsl(var(--border))' }}>
-                  <h4 style={{ fontSize: '13px', fontWeight: '700', marginBottom: '10px' }}>내 자녀 치수와 비교</h4>
+                <div style={{ marginBottom: '25px', background: 'rgba(16,185,129,0.04)', padding: '15px', borderRadius: 'var(--radius-md)', border: '1px solid hsl(var(--card-border))' }}>
+                  <h4 style={{ fontSize: '13px', fontWeight: '800', marginBottom: '10px', color: 'hsl(var(--primary))' }}>내 자녀 치수와 비교 그래프</h4>
                   
                   {selectedCloth.category === '하의' ? (
                     <>
@@ -877,8 +934,8 @@ export default function DashboardPage() {
                   )}
                   
                   {checkCompatibility(selectedCloth) && (
-                    <div style={{ fontSize: '12px', fontWeight: '600', color: checkCompatibility(selectedCloth).color, marginTop: '10px', display: 'flex', gap: '5px', alignItems: 'center' }}>
-                      <Check size={14} /> 자녀 피팅 요약: {checkCompatibility(selectedCloth).label}
+                    <div style={{ fontSize: '12px', fontWeight: '700', color: checkCompatibility(selectedCloth).color, marginTop: '12px', display: 'flex', gap: '5px', alignItems: 'center' }}>
+                      <Check size={14} /> 자녀 피팅 결과: {checkCompatibility(selectedCloth).label}
                     </div>
                   )}
                 </div>
@@ -889,15 +946,15 @@ export default function DashboardPage() {
                 {selectedCloth.status === 'available' ? (
                   <button 
                     className="glow-btn" 
-                    style={{ width: '100%', padding: '14px' }}
+                    style={{ width: '100%', padding: '14px', borderRadius: 'var(--radius-md)' }}
                     onClick={() => openReserveModal(selectedCloth)}
                   >
-                    무료 분양 신청하기 (예약)
+                    🎁 이 나눔 옷 무료로 신청하기
                   </button>
                 ) : (
                   <div style={{ background: 'hsl(var(--muted))', border: '1px solid hsl(var(--border))', borderRadius: 'var(--radius-md)', padding: '14px', textAlign: 'center' }}>
-                    <p style={{ fontWeight: '700', color: '#fbbf24', fontSize: '14px' }}>이미 분양 예약된 의류입니다</p>
-                    <p style={{ fontSize: '11px', color: 'var(--muted-foreground)', marginTop: '4px' }}>
+                    <p style={{ fontWeight: '800', color: '#ca8a04', fontSize: '14px' }}>🔒 이미 나눔 예약이 완료된 의류입니다</p>
+                    <p style={{ fontSize: '12px', color: 'hsl(var(--muted-foreground))', marginTop: '4px' }}>
                       예약자: {selectedCloth.reservation?.student_name} ({selectedCloth.reservation?.grade})
                     </p>
                   </div>
@@ -911,16 +968,16 @@ export default function DashboardPage() {
       {/* RESERVATION INPUT FORM MODAL */}
       {isReserveModalOpen && selectedCloth && (
         <div className={styles.modalOverlay} onClick={() => { setIsReserveModalOpen(false); setSelectedCloth(null); }}>
-          <div className="glass-panel" style={{ width: '100%', maxWidth: '420px', padding: '30px', position: 'relative' }} onClick={(e) => e.stopPropagation()}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '420px', padding: '30px', position: 'relative', border: '1px solid hsl(var(--primary)/0.2)' }} onClick={(e) => e.stopPropagation()}>
             <button className={styles.closeButton} onClick={() => { setIsReserveModalOpen(false); setSelectedCloth(null); }}>
               <X size={16} />
             </button>
 
-            <h3 style={{ fontSize: '20px', fontFamily: 'var(--font-title)', fontWeight: '800', marginBottom: '15px' }}>
-              📝 분양 신청서 작성
+            <h3 style={{ fontSize: '20px', fontFamily: 'var(--font-title)', fontWeight: '800', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px', color: 'hsl(var(--primary))' }}>
+              📝 나눔 신청서 작성
             </h3>
-            <p style={{ fontSize: '12px', color: 'var(--muted-foreground)', marginBottom: '20px', lineHeight: '1.4' }}>
-              나눔 옷은 학교 수거함에서 직접 수령하셔야 합니다. 본인 확인을 위한 학생 정보를 작성해 주세요.
+            <p style={{ fontSize: '13px', color: 'hsl(var(--muted-foreground))', marginBottom: '20px', lineHeight: '1.4' }}>
+              나눔 옷은 학교 수거함에서 본인 확인 후 직접 수령하실 수 있습니다. 간단한 신청자 정보를 입력해주세요.
             </p>
 
             <div className={styles.formGrid}>
@@ -932,6 +989,7 @@ export default function DashboardPage() {
                   onChange={(e) => setReserveName(e.target.value)} 
                   className="input-field" 
                   placeholder="예: 홍길동"
+                  style={{ borderRadius: 'var(--radius-sm)' }}
                 />
               </div>
               <div>
@@ -942,6 +1000,7 @@ export default function DashboardPage() {
                   onChange={(e) => setReserveGrade(e.target.value)} 
                   className="input-field" 
                   placeholder="예: 3학년 2반"
+                  style={{ borderRadius: 'var(--radius-sm)' }}
                 />
               </div>
               <div>
@@ -952,23 +1011,24 @@ export default function DashboardPage() {
                   onChange={(e) => setReservePhone(e.target.value)} 
                   className="input-field" 
                   placeholder="예: 010-1234-5678"
+                  style={{ borderRadius: 'var(--radius-sm)' }}
                 />
               </div>
 
-              <div style={{ marginTop: '20px', display: 'flex', gap: '12px' }}>
+              <div style={{ marginTop: '24px', display: 'flex', gap: '12px' }}>
                 <button 
                   className="glow-btn-secondary" 
-                  style={{ flex: 1 }}
+                  style={{ flex: 1, borderRadius: 'var(--radius-md)' }}
                   onClick={() => setIsReserveModalOpen(false)}
                 >
-                  취소
+                  돌아가기
                 </button>
                 <button 
                   className="glow-btn" 
-                  style={{ flex: 2 }}
+                  style={{ flex: 2, borderRadius: 'var(--radius-md)' }}
                   onClick={handleReserve}
                 >
-                  예약 확정하기
+                  신청 완료하기 🌱
                 </button>
               </div>
             </div>
@@ -979,7 +1039,7 @@ export default function DashboardPage() {
       {/* QR CONNECT MODAL */}
       {isQRModalOpen && (
         <div className={styles.modalOverlay} onClick={() => setIsQRModalOpen(false)}>
-          <div className="glass-panel" style={{ width: '100%', maxWidth: '380px', padding: '30px', position: 'relative' }} onClick={(e) => e.stopPropagation()}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '380px', padding: '30px', position: 'relative', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
             <button className={styles.closeButton} onClick={() => setIsQRModalOpen(false)}>
               <X size={16} />
             </button>
@@ -987,10 +1047,10 @@ export default function DashboardPage() {
             <div className={styles.qrWrapper}>
               <QrCode size={48} style={{ color: 'hsl(var(--primary))' }} />
               <h3 style={{ fontSize: '18px', fontFamily: 'var(--font-title)', fontWeight: '800', marginTop: '15px' }}>
-                스마트폰 카메라 연결
+                모바일에서 편리하게 촬영하기
               </h3>
-              <p style={{ fontSize: '12px', color: 'var(--muted-foreground)', marginTop: '8px', lineHeight: '1.4' }}>
-                스마트폰으로 아래 QR 코드를 스캔하면, 모바일 전용 의류 촬영 및 실측 등록 페이지로 즉시 접속합니다.
+              <p style={{ fontSize: '12px', color: 'hsl(var(--muted-foreground))', marginTop: '8px', lineHeight: '1.4' }}>
+                스마트폰 카메라로 아래 QR 코드를 스캔하면, 모바일 전용 의류 촬영 및 AI 실측 등록 화면으로 연동됩니다.
               </p>
               
               <img 
@@ -999,9 +1059,9 @@ export default function DashboardPage() {
                 className={styles.qrImage}
               />
 
-              <div style={{ fontSize: '11px', color: 'var(--muted-foreground)', background: 'hsl(var(--muted)/0.4)', padding: '10px', borderRadius: 'var(--radius-sm)', width: '100%' }}>
-                연결 주소: <br />
-                <a href={qrCodeUrl} target="_blank" rel="noreferrer" style={{ color: 'hsl(var(--secondary))', textDecoration: 'underline', wordBreak: 'break-all' }}>
+              <div style={{ fontSize: '11px', color: 'hsl(var(--muted-foreground))', background: 'hsl(var(--muted))', padding: '12px', borderRadius: 'var(--radius-md)', width: '100%', border: '1px solid hsl(var(--border))', marginTop: '10px' }}>
+                주소 복사 링크: <br />
+                <a href={qrCodeUrl} target="_blank" rel="noreferrer" style={{ color: 'hsl(var(--secondary))', textDecoration: 'underline', wordBreak: 'break-all', fontWeight: '600' }}>
                   {qrCodeUrl}
                 </a>
               </div>
@@ -1012,3 +1072,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+
