@@ -1071,6 +1071,8 @@ export default function AdminPage() {
                     <option value="상의">상의</option>
                     <option value="하의">하의</option>
                     <option value="아우터">아우터</option>
+                    <option value="원피스/세트">원피스/세트</option>
+                    <option value="기타(잡화)">기타(잡화)</option>
                   </select>
                 </div>
                 <div>
@@ -1081,9 +1083,10 @@ export default function AdminPage() {
                     className={`input-field ${styles.adminInputField}`}
                     style={{ appearance: 'auto' }}
                   >
-                    <option value="교복">교복</option>
+                    <option value="교복/생활복">교복/생활복</option>
                     <option value="체육복">체육복</option>
                     <option value="일상복">일상복</option>
+                    <option value="기타(행사/특수복)">기타(행사/특수복)</option>
                   </select>
                 </div>
               </div>
@@ -1147,9 +1150,9 @@ export default function AdminPage() {
               )}
             </div>
 
-            <div className={styles.markerItem} style={{ background: 'hsl(var(--muted)/0.3)', padding: '10px', borderRadius: 'var(--radius-sm)', border: '1px dashed hsl(var(--border))', alignItems: 'center' }}>
-              <span style={{ fontSize: '16px', marginRight: '6px', lineHeight: '1.2' }}>💡</span>
-              <p style={{ fontSize: '11px', color: 'var(--muted-foreground)', lineHeight: '1.3' }}>
+            <div className={styles.markerItem} style={{ background: 'hsl(var(--muted)/0.3)', padding: '12px', borderRadius: 'var(--radius-sm)', border: '1px dashed hsl(var(--border))', alignItems: 'center' }}>
+              <span style={{ fontSize: '18px', marginRight: '8px', lineHeight: '1' }}>💡</span>
+              <p style={{ fontSize: '0.85rem', color: 'var(--muted-foreground)', lineHeight: '1.5', margin: 0 }}>
                 화면 좌측 이미지의 동그라미 조절점(●)을 마우스나 손가락으로 드래그하면 실측 치수가 실시간으로 갱신됩니다.
               </p>
             </div>
