@@ -1064,7 +1064,11 @@ export default function AdminPage() {
                   <label className={styles.formLabel}>카테고리</label>
                   <select 
                     value={category} 
-                    onChange={(e) => setCategory(e.target.value)}
+                    onChange={(e) => {
+                      const newCategory = e.target.value;
+                      setCategory(newCategory);
+                      setName(`${style} ${newCategory} (자동 태깅)`);
+                    }}
                     className={`input-field ${styles.adminInputField}`}
                     style={{ appearance: 'auto' }}
                   >
@@ -1079,7 +1083,11 @@ export default function AdminPage() {
                   <label className={styles.formLabel}>의류 스타일</label>
                   <select 
                     value={style} 
-                    onChange={(e) => setStyle(e.target.value)}
+                    onChange={(e) => {
+                      const newStyle = e.target.value;
+                      setStyle(newStyle);
+                      setName(`${newStyle} ${category} (자동 태깅)`);
+                    }}
                     className={`input-field ${styles.adminInputField}`}
                     style={{ appearance: 'auto' }}
                   >
