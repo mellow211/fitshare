@@ -348,8 +348,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   box-sizing: border-box;
+  white-space: nowrap !important; /* Prevent text wrapping */
+  font-size: 0.9rem !important; /* Compact font size to fit in 1:1 */
+  padding: 0 10px !important; /* Safe padding for text bounds */
 }
 
 .actionRow button:first-child {
