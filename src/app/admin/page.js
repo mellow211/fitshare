@@ -35,6 +35,35 @@ export default function AdminPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
 
+  const renderMinimap = (targetIdx) => {
+    const isCurrent = markers.length === targetIdx;
+    let tlColor = "#94a3b8";
+    if (markers.length > 0) tlColor = "#10b981";
+    else if (markers.length === 0 && targetIdx === 0) tlColor = "#f43f5e";
+
+    let trColor = "#94a3b8";
+    if (markers.length > 1) trColor = "#10b981";
+    else if (markers.length === 1 && targetIdx === 1) trColor = "#f43f5e";
+
+    let brColor = "#94a3b8";
+    if (markers.length > 2) brColor = "#10b981";
+    else if (markers.length === 2 && targetIdx === 2) brColor = "#f43f5e";
+
+    let blColor = "#94a3b8";
+    if (markers.length > 3) blColor = "#10b981";
+    else if (markers.length === 3 && targetIdx === 3) blColor = "#f43f5e";
+
+    return (
+      <svg width="24" height="18" viewBox="0 0 24 18" style={{ marginRight: '8px', flexShrink: 0 }}>
+        <rect x="2" y="2" width="20" height="14" rx="2" fill="none" stroke={isCurrent ? "hsl(var(--primary))" : "#cbd5e1"} strokeWidth="1.5" />
+        <circle cx="5" cy="5" r="2.5" fill={tlColor} className={markers.length === 0 && targetIdx === 0 ? styles.blinkingMinimapDot : ''} />
+        <circle cx="19" cy="5" r="2.5" fill={trColor} className={markers.length === 1 && targetIdx === 1 ? styles.blinkingMinimapDot : ''} />
+        <circle cx="19" cy="13" r="2.5" fill={brColor} className={markers.length === 2 && targetIdx === 2 ? styles.blinkingMinimapDot : ''} />
+        <circle cx="5" cy="13" r="2.5" fill={blColor} className={markers.length === 3 && targetIdx === 3 ? styles.blinkingMinimapDot : ''} />
+      </svg>
+    );
+  };
+
   // Measurement Line Handles (Percentage coordinates 0-100)
   // Each line has point A (x1, y1) and point B (x2, y2)
   const [lineHandles, setLineHandles] = useState({
@@ -715,6 +744,11 @@ export default function AdminPage() {
             <div className="scanning-bracket scanning-bracket-bl" />
             <div className="scanning-bracket scanning-bracket-br" />
             
+            {/* Constant faint high-tech scan line overlay */}
+            <div className="scannerOverlay" style={{ opacity: 0.15, border: 'none', background: 'transparent', animation: 'none' }}>
+              <div className="scanLine" style={{ animationDuration: '3.5s', opacity: 0.7 }} />
+            </div>
+
             <canvas 
               ref={displayCanvasRef}
               className={styles.interactiveCanvas}
@@ -728,10 +762,10 @@ export default function AdminPage() {
           </div>
 
           {/* Control parameters */}
-          <div className="glass-panel styles.controlCard" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div className={`glass-panel ${styles.controlCard}`} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
             <div>
               <h3 className={styles.cardSectionTitle}>
-                <Sliders size={16} /> 크로마키 배경 지우기
+                <Sliders size={16} /> [Step 1. 배경 지우기]
               </h3>
               <div className={styles.optionGrid}>
                 {['green', 'blue', 'none'].map((mode) => (
@@ -740,9 +774,9 @@ export default function AdminPage() {
                     className={`${styles.optionButton} ${chromaMode === mode ? styles.optionButtonActive : ''}`}
                     onClick={() => setChromaMode(mode)}
                   >
-                    {mode === 'green' && '초록 크로마키'}
-                    {mode === 'blue' && '파랑 크로마키'}
-                    {mode === 'none' && '제거 없음'}
+                    {mode === 'green' && '초록색 배경'}
+                    {mode === 'blue' && '파란색 배경'}
+                    {mode === 'none' && '지우지 않기'}
                   </button>
                 ))}
               </div>
@@ -750,27 +784,31 @@ export default function AdminPage() {
               {chromaMode !== 'none' && (
                 <div className={styles.sliderContainer}>
                   <div className={styles.sliderLabel}>
-                    <span>지우기 강도 (Tolerance)</span>
+                    <span>배경 지우기 세기 조절</span>
                     <span>{tolerance}</span>
                   </div>
-                  <input 
-                    type="range"
-                    min="10"
-                    max="150"
-                    value={tolerance}
-                    onChange={(e) => setTolerance(e.target.value)}
-                    className={styles.sliderInput}
-                  />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '14px', opacity: 0.6 }}>☁️</span>
+                    <input 
+                      type="range"
+                      min="10"
+                      max="150"
+                      value={tolerance}
+                      onChange={(e) => setTolerance(e.target.value)}
+                      className={styles.sliderInput}
+                    />
+                    <span style={{ fontSize: '14px', opacity: 0.6 }}>☁️☁️</span>
+                  </div>
                 </div>
               )}
             </div>
 
             <div>
               <h3 className={styles.cardSectionTitle}>
-                <RotateCw size={16} /> 사진 방향 회전
+                <RotateCw size={16} /> [Step 2. 사진 방향 맞추기]
               </h3>
               <p style={{ fontSize: '12px', color: 'var(--muted-foreground)', marginTop: '8px', lineHeight: '1.4' }}>
-                사진이 옆으로 돌아가서 촬영되었다면 90도씩 회전시켜 똑바로 맞춘 뒤 꼭짓점을 클릭해 주세요:
+                사진이 옆으로 돌아가 있다면 똑바로 눕도록 돌려 주세요:
               </p>
               <button 
                 className="glow-btn-secondary" 
@@ -783,15 +821,16 @@ export default function AdminPage() {
 
             <div>
               <h3 className={styles.cardSectionTitle}>
-                <Maximize2 size={16} /> 모서리 지정 ({markers.length}/4)
+                <Maximize2 size={16} /> [Step 3. 실제 크기 측정 기준점 찍기] ({markers.length}/4)
               </h3>
               <p style={{ fontSize: '12px', color: 'var(--muted-foreground)', marginTop: '8px', lineHeight: '1.4' }}>
-                촬영 박스 내의 실제 가로/세로 100cm 영역의 꼭짓점 마커 4곳을 순서대로 클릭하세요:
+                촬영 박스 내의 실제 가로/세로 100cm 꼭짓점 4곳을 깜빡이는 미니맵에 맞게 순서대로 클릭하세요:
               </p>
               
               <div className={styles.markerInfoList}>
                 {markerLabels.map((lbl, idx) => (
                   <div key={idx} className={`${styles.markerItem} ${markers.length === idx ? styles.markerItemActive : ''}`}>
+                    {renderMinimap(idx)}
                     <div className={`
                       ${styles.markerDot} 
                       ${markers.length === idx ? styles.markerDotActive : ''} 
@@ -815,18 +854,18 @@ export default function AdminPage() {
 
             <div style={{ marginTop: 'auto' }}>
               <button 
-                className="glow-btn"
+                className={`${styles.ctaButton} glow-btn`}
                 style={{ width: '100%' }}
                 disabled={markers.length < 4 || isLoading}
                 onClick={handleWarpAndAnalyze}
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="animate-spin" size={18} /> 원근 보정 및 AI 분석 중...
+                    <Loader2 className="animate-spin" size={20} /> 원근 보정 및 AI 분석 중...
                   </>
                 ) : (
                   <>
-                    <Sparkles size={18} /> 보정 및 치수 분석 요청
+                    <Sparkles size={20} /> ✨ AI 치수 분석 및 스캔 완료하기
                   </>
                 )}
               </button>
