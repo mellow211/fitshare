@@ -462,7 +462,7 @@ export default function DashboardPage() {
       )}
 
       {/* Main Header */}
-      <div className={styles.header} style={{ borderBottom: '1px solid hsl(var(--border))', paddingBottom: '24px', marginBottom: '40px' }}>
+      <div className={styles.header} style={{ borderBottom: '1px solid hsl(var(--border))', paddingBottom: '12px', marginBottom: '16px' }}>
         <div className={styles.brand}>
           <span style={{ fontSize: '12px', fontWeight: '800', color: 'hsl(var(--primary))', display: 'flex', alignItems: 'center', gap: '4px' }}>
             <MapPin size={12} /> {spaceCode} 전용 옷장 🟢
@@ -594,8 +594,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Grid Filtering options */}
-      <div className={styles.filterSection} style={{ flexDirection: 'column', alignItems: 'stretch', gap: '20px' }}>
+      <div className={styles.filterSection} style={{ flexDirection: 'column', alignItems: 'stretch', gap: '10px' }}>
         <div className={styles.searchBar} style={{ maxWidth: '100%' }}>
           <div style={{ position: 'relative' }}>
             <input 
@@ -604,9 +603,9 @@ export default function DashboardPage() {
               onChange={(e) => setSearchQuery(e.target.value)} 
               placeholder="의류 이름 또는 색상 검색..." 
               className="input-field"
-              style={{ paddingLeft: '38px', borderRadius: 'var(--radius-md)', width: '100%', height: '48px', fontSize: '15px' }}
+              style={{ paddingLeft: '38px', borderRadius: 'var(--radius-md)', width: '100%', height: '38px', fontSize: '14px' }}
             />
-            <Search size={18} style={{ position: 'absolute', left: '14px', top: '15px', color: 'hsl(var(--muted-foreground))' }} />
+            <Search size={16} style={{ position: 'absolute', left: '14px', top: '11px', color: 'hsl(var(--muted-foreground))' }} />
           </div>
         </div>
 
