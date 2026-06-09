@@ -489,7 +489,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Mascot Guidance Widget */}
-      <div className={styles.mascotWidget} style={{ display: 'flex', gap: '20px', alignItems: 'center', background: 'rgba(255, 255, 255, 0.95)', border: '1px solid hsl(var(--card-border))', borderRadius: 'var(--radius-lg)', padding: '22px 26px', marginBottom: '30px', boxShadow: '0 8px 30px rgba(16,185,129,0.05)' }}>
+      <div className={styles.mascotWidget}>
         <div style={{ flexShrink: 0, position: 'relative' }}>
           {/* Cute leaf mascot Choroki */}
           <svg width="68" height="68" viewBox="0 0 64 64" fill="none">
@@ -610,55 +610,52 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {/* Row 1: 종류별 & 스타일별 */}
-          <div className={styles.filterGroupRow}>
-            <div className={styles.filterSubGroup}>
-              <span className={styles.filterGroupLabel}>의류 종류별</span>
-              <div className={styles.tagFilters}>
-                {[['전체', '전체 🌈'], ['상의', '상의 👕'], ['하의', '하의 👖'], ['아우터', '아우터 🧥']].map(([key, label]) => (
-                  <button 
-                    key={key} 
-                    className={`${styles.filterTag} ${selectedCategory === key ? styles.filterTagActive : ''}`}
-                    onClick={() => setSelectedCategory(key)}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className={styles.filterSubGroup}>
-              <span className={styles.filterGroupLabel}>의류 스타일별</span>
-              <div className={styles.tagFilters}>
-                {[['전체', '전체 💫'], ['교복', '교복 👔'], ['체육복', '체육복 🏃'], ['일상복', '일상복 🧸']].map(([key, label]) => (
-                  <button 
-                    key={key} 
-                    className={`${styles.filterTag} ${selectedStyle === key ? styles.filterTagActive : ''}`}
-                    onClick={() => setSelectedStyle(key)}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
+        <div className={styles.filterGroupRow}>
+          {/* Group 1: 종류별 */}
+          <div className={styles.filterSubGroup}>
+            <span className={styles.filterGroupLabel}>의류 종류별</span>
+            <div className={styles.tagFilters}>
+              {[['전체', '전체 🌈'], ['상의', '상의 👕'], ['하의', '하의 👖'], ['아우터', '아우터 🧥']].map(([key, label]) => (
+                <button 
+                  key={key} 
+                  className={`${styles.filterTag} ${selectedCategory === key ? styles.filterTagActive : ''}`}
+                  onClick={() => setSelectedCategory(key)}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Row 2: 상태별 */}
-          <div className={styles.filterGroupRow}>
-            <div className={styles.filterSubGroup} style={{ width: '100%' }}>
-              <span className={styles.filterGroupLabel}>예약 상태별</span>
-              <div className={styles.tagFilters}>
-                {[['전체', '전체 🏷️'], ['available', '신청가능 🌱'], ['reserved', '예약됨 🔒']].map(([key, label]) => (
-                  <button 
-                    key={key} 
-                    className={`${styles.filterTag} ${selectedStatus === key ? styles.filterTagActive : ''}`}
-                    onClick={() => setSelectedStatus(key)}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
+          {/* Group 2: 스타일별 */}
+          <div className={styles.filterSubGroup}>
+            <span className={styles.filterGroupLabel}>의류 스타일별</span>
+            <div className={styles.tagFilters}>
+              {[['전체', '전체 💫'], ['교복', '교복 👔'], ['체육복', '체육복 🏃'], ['일상복', '일상복 🧸']].map(([key, label]) => (
+                <button 
+                  key={key} 
+                  className={`${styles.filterTag} ${selectedStyle === key ? styles.filterTagActive : ''}`}
+                  onClick={() => setSelectedStyle(key)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Group 3: 상태별 */}
+          <div className={styles.filterSubGroup}>
+            <span className={styles.filterGroupLabel}>예약 상태별</span>
+            <div className={styles.tagFilters}>
+              {[['전체', '전체 🏷️'], ['available', '신청가능 🌱'], ['reserved', '예약됨 🔒']].map(([key, label]) => (
+                <button 
+                  key={key} 
+                  className={`${styles.filterTag} ${selectedStatus === key ? styles.filterTagActive : ''}`}
+                  onClick={() => setSelectedStatus(key)}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
           </div>
         </div>

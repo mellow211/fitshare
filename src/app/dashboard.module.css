@@ -80,13 +80,26 @@
   flex-wrap: wrap;
 }
 
+/* Mascot Guidance Widget */
+.mascotWidget {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid hsl(var(--card-border));
+  border-radius: var(--radius-lg);
+  padding: 12px 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 8px 30px rgba(16,185,129,0.05);
+}
+
 /* Size Matcher Panel styling */
 .matcherPanel {
   background: #ffffff;
   border: 2px solid hsl(var(--primary) / 0.15);
   border-radius: var(--radius-xl);
-  padding: 28px;
-  margin-bottom: 40px;
+  padding: 16px 24px;
+  margin-bottom: 24px;
   box-shadow: 0 10px 30px rgba(5, 150, 105, 0.04);
 }
 
@@ -194,11 +207,10 @@
 
 .filterSection {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 25px;
-  gap: 20px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: stretch;
+  margin-bottom: 20px;
+  gap: 16px;
 }
 
 .searchBar {
@@ -313,19 +325,21 @@
 .imageWrapper {
   width: 100%;
   aspect-ratio: 1/1;
-  background: #fdfdfd;
+  background: #f4f6f8; /* Soft light gray background */
+  padding: 16px; /* 1rem inside padding */
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
   position: relative;
-  border-bottom: 1px solid var(--glass-border);
+  border-bottom: 1px solid hsl(var(--card-border));
 }
 
 .cardImage {
-  width: 90%;
-  height: 90%;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
+  mix-blend-mode: multiply; /* Natural blend for white-bordered photos */
   transition: transform 0.3s ease;
 }
 .card:hover .cardImage {
@@ -395,39 +409,44 @@
 }
 
 .categoryBadge {
-  background: hsl(var(--primary) / 0.06);
+  background: hsl(var(--primary) / 0.08);
   color: hsl(var(--primary));
-  font-size: 11px;
+  font-size: 12px; /* Increased from 11px */
   font-weight: 700;
-  padding: 3px 8px;
-  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  border-radius: var(--radius-md); /* Smoothly rounded */
 }
 
 .aiTag {
   background: hsl(var(--secondary) / 0.08);
   color: hsl(var(--secondary));
-  font-size: 10px;
+  font-size: 11px; /* Increased from 10px */
   font-weight: 800;
-  padding: 3px 8px;
-  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  border-radius: var(--radius-md);
   display: inline-flex;
   align-items: center;
 }
 
 .aiMeasureCard {
-  background: #eefdf5; /* Light green background */
+  background: #eefdf5;
   border: 1px solid #cbf3db;
   border-radius: var(--radius-md);
-  padding: 10px 12px;
+  padding: 10px 14px;
   margin-top: 10px;
   margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .aiMeasureHeader {
   font-size: 11px;
   font-weight: 800;
-  color: #047857; /* Darker emerald green */
-  display: block;
+  color: #047857;
+  display: flex;
+  align-items: center;
+  gap: 4px;
   margin-bottom: 6px;
 }
 
@@ -437,6 +456,7 @@
   font-size: 12px;
   font-weight: 700;
   color: #065f46;
+  align-items: center; /* Perfect vertical alignment */
 }
 
 /* Modal details styling */
