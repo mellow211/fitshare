@@ -479,10 +479,10 @@ export default function DashboardPage() {
           <button className="glow-btn-secondary" onClick={() => setIsQRModalOpen(true)}>
             <Smartphone size={16} /> 모바일 기기 연동
           </button>
-          <button className="glow-btn-secondary" style={{ padding: '12px' }} onClick={loadClothes} title="새로고침">
+          <button className="glow-btn-secondary" style={{ width: '40px', padding: 0 }} onClick={loadClothes} title="새로고침">
             <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
           </button>
-          <button className="glow-btn-secondary" onClick={handleLeaveSpace} style={{ border: '1px solid hsl(var(--danger)/0.15)', color: 'hsl(var(--danger))' }}>
+          <button className="glow-btn-secondary" onClick={handleLeaveSpace} style={{ border: '1px solid hsl(var(--danger)/0.15)', color: 'hsl(var(--danger))', marginLeft: '16px' }}>
             옷장 나가기
           </button>
         </div>
