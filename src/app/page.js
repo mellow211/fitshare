@@ -324,8 +324,9 @@ export default function DashboardPage() {
   // Welcome Screen (Enter space code)
   if (!isSpaceLoaded) {
     return (
-      <div className={styles.container} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '85vh', justifyContent: 'center' }}>
-        <div className={styles.heroContainer}>
+      <div className={styles.welcomePage}>
+        <div className={styles.container} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingBottom: 0 }}>
+          <div className={styles.heroContainer}>
           <div className={styles.heroLeft}>
             <span className={styles.heroTag}>🌱 AI 기반 학교 의류 자원 순환 시스템</span>
             <h1 className={styles.heroTitle}>
@@ -338,14 +339,13 @@ export default function DashboardPage() {
             </p>
 
             <form onSubmit={handleJoinSpace} style={{ width: '100%', maxWidth: '520px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div className={styles.spaceInputRow} style={{ width: '100%', margin: '0' }}>
+              <div className={styles.spaceInputRow}>
                 <input 
                   type="text" 
                   value={enteredSpaceCode} 
                   onChange={(e) => setEnteredSpaceCode(e.target.value)} 
                   placeholder="학교 코드 입력 (예: seosol-elementary)" 
-                  className="input-field"
-                  style={{ padding: '16px 20px', fontSize: '15px', borderRadius: 'var(--radius-md)', border: '2px solid hsl(var(--primary)/0.25)' }}
+                  className={styles.heroInput}
                 />
                 <button type="submit" className="glow-btn" style={{ padding: '16px 28px', borderRadius: 'var(--radius-md)', fontSize: '15px', whiteSpace: 'nowrap' }}>
                   스마트 옷장 입장하기 🎒
@@ -354,24 +354,8 @@ export default function DashboardPage() {
 
               <button 
                 type="button" 
-                className="glow-btn-secondary" 
+                className={styles.demoButton}
                 onClick={handleJoinDemo}
-                style={{ 
-                  border: '2px dashed hsl(var(--primary))', 
-                  color: 'hsl(var(--primary))', 
-                  background: 'transparent',
-                  padding: '14px 24px',
-                  fontSize: '14px',
-                  fontWeight: '800',
-                  borderRadius: 'var(--radius-md)',
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  cursor: 'pointer',
-                  boxShadow: 'none'
-                }}
               >
                 ▶ 심사위원용 데모 옷장 바로가기 (로그인 생략)
               </button>
@@ -417,42 +401,45 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+        </div>
 
         {/* 3-Step Process Cards Section */}
         <div className={styles.stepSection}>
-          <h2 className={styles.stepSectionTitle}>스마트 옷장 핵심 프로세스</h2>
-          <div className={styles.stepCardGrid}>
-            
-            <div className={styles.stepCard}>
-              <div className={styles.stepCardIcon}>
-                <Smartphone size={22} />
+          <div className={styles.stepSectionInner}>
+            <h2 className={styles.stepSectionTitle}>스마트 옷장 핵심 프로세스</h2>
+            <div className={styles.stepCardGrid}>
+              
+              <div className={styles.stepCard}>
+                <div className={styles.stepCardIcon}>
+                  <Smartphone size={28} />
+                </div>
+                <h3 className={styles.stepCardTitle}>1. 의류 스캔 및 데이터화</h3>
+                <p className={styles.stepCardDesc}>
+                  기부할 옷을 촬영해 올리면 AI가 원근 왜곡을 자동 보정하고 어깨너비, 가슴단면, 기장 등 세부 실측 수치를 고정밀 분석합니다.
+                </p>
               </div>
-              <h3 className={styles.stepCardTitle}>1. 의류 스캔 및 데이터화</h3>
-              <p className={styles.stepCardDesc}>
-                기부할 옷을 촬영해 올리면 AI가 원근 왜곡을 자동 보정하고 어깨너비, 가슴단면, 기장 등 세부 실측 수치를 고정밀 분석합니다.
-              </p>
-            </div>
 
-            <div className={styles.stepCard}>
-              <div className={styles.stepCardIcon}>
-                <Ruler size={22} />
+              <div className={styles.stepCard}>
+                <div className={styles.stepCardIcon}>
+                  <Ruler size={28} />
+                </div>
+                <h3 className={styles.stepCardTitle}>2. 신체 데이터 매칭</h3>
+                <p className={styles.stepCardDesc}>
+                  자녀의 키와 몸무게를 입력하면 표준 신체 지수를 산출하여, 작아서 맞지 않는 옷은 사전에 거르고 예쁘게 맞는 크기의 의류만 골라냅니다.
+                </p>
               </div>
-              <h3 className={styles.stepCardTitle}>2. 신체 데이터 매칭</h3>
-              <p className={styles.stepCardDesc}>
-                자녀의 키와 몸무게를 입력하면 표준 신체 지수를 산출하여, 작아서 맞지 않는 옷은 사전에 거르고 예쁘게 맞는 크기의 의류만 골라냅니다.
-              </p>
-            </div>
 
-            <div className={styles.stepCard}>
-              <div className={styles.stepCardIcon}>
-                <Sparkles size={22} />
+              <div className={styles.stepCard}>
+                <div className={styles.stepCardIcon}>
+                  <Sparkles size={28} />
+                </div>
+                <h3 className={styles.stepCardTitle}>3. AI 맞춤 코디 추천</h3>
+                <p className={styles.stepCardDesc}>
+                  기증된 품목 중 현재 신청 가능한 의류들의 색상 Harmony와 교복·체육복·일상복 스타일을 연산해 최적의 조합 세트를 추천합니다.
+                </p>
               </div>
-              <h3 className={styles.stepCardTitle}>3. AI 맞춤 코디 추천</h3>
-              <p className={styles.stepCardDesc}>
-                기증된 품목 중 현재 신청 가능한 의류들의 색상 Harmony와 교복·체육복·일상복 스타일을 연산해 최적의 조합 세트를 추천합니다.
-              </p>
-            </div>
 
+            </div>
           </div>
         </div>
       </div>
