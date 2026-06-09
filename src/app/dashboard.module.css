@@ -1117,3 +1117,105 @@
   line-height: 1.6;
 }
 
+/* Responsive adjustments for mobile viewports */
+@media (max-width: 768px) {
+  .spaceInputRow {
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+  }
+  
+  .spaceInputRow input,
+  .spaceInputRow button {
+    width: 100% !important;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .brand {
+    align-items: center;
+  }
+
+  .mainTitle {
+    font-size: 24px !important;
+    justify-content: center;
+  }
+
+  .subtitle {
+    text-align: center;
+  }
+
+  .actionRow {
+    justify-content: center;
+    width: 100%;
+    gap: 8px;
+  }
+
+  .actionRow button {
+    flex: 1;
+    font-size: 13px;
+    padding: 0 10px;
+    white-space: nowrap;
+  }
+
+  .mascotWidget {
+    flex-direction: column;
+    text-align: center;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .modalContent {
+    grid-template-columns: 1fr;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .modalInfoArea {
+    padding: 20px !important;
+  }
+
+  .modalTitle {
+    font-size: 20px !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .matcherInputsRow {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .matcherInputGroup {
+    width: 100%;
+  }
+
+  .matcherLargeInput {
+    width: 100% !important;
+    box-sizing: border-box;
+  }
+
+  .magicWandBtn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .estimatedSpecGrid {
+    gap: 8px;
+  }
+
+  .estimatedSpecBadge {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+

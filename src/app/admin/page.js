@@ -1059,7 +1059,7 @@ export default function AdminPage() {
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+              <div className={styles.selectGrid}>
                 <div>
                   <label className={styles.formLabel}>카테고리</label>
                   <select 

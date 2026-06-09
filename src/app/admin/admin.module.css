@@ -475,4 +475,70 @@
   box-shadow: 0 8px 20px rgba(34, 197, 94, 0.3) !important;
 }
 
+.selectGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+/* Responsive adjustments for admin mobile viewports */
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  .titleArea {
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .stepTitle {
+    font-size: 20px !important;
+    text-align: center;
+  }
+
+  .stepSubtitle {
+    text-align: center;
+  }
+}
+
+@media (max-width: 520px) {
+  .container {
+    padding: 20px 12px;
+  }
+
+  .optionGrid {
+    grid-template-columns: 1fr !important;
+    gap: 8px;
+  }
+
+  .selectGrid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .dimensionGrid {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+  }
+
+  .actionRow {
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 15px;
+  }
+
+  .actionRow button {
+    width: 100% !important;
+    flex: none !important;
+    font-size: 0.95rem !important; /* Scale up font size when stacked on mobile */
+    padding: 0 16px !important;
+  }
+}
+
 
