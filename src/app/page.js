@@ -689,21 +689,21 @@ export default function DashboardPage() {
             const comp = checkCompatibility(cloth);
             return (
               <div key={cloth.id} className={styles.card} onClick={() => setSelectedCloth(cloth)}>
+                {/* Delete button */}
+                <button 
+                  className={styles.deleteCardButton}
+                  onClick={(e) => handleDelete(cloth, e)}
+                  title="의류 삭제"
+                >
+                  <Trash2 size={14} />
+                </button>
+
                 {/* Image wrapper */}
                 <div className={styles.imageWrapper}>
                   <span className={`${styles.statusBadge} badge ${cloth.status === 'available' ? 'badge-available' : 'badge-reserved'}`}>
                     {cloth.status === 'available' ? '🌱 신청 가능' : '🔒 예약 완료'}
                   </span>
                   <img src={cloth.image_url} alt={cloth.name} className={styles.cardImage} loading="lazy" />
-                  
-                  {/* Delete button */}
-                  <button 
-                    onClick={(e) => handleDelete(cloth, e)}
-                    style={{ position: 'absolute', bottom: '12px', right: '12px', background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.15)', color: '#ef4444', borderRadius: 'var(--radius-sm)', padding: '6px', cursor: 'pointer', zIndex: 10, transition: 'all 0.2s ease' }}
-                    title="의류 삭제"
-                  >
-                    <Trash2 size={14} />
-                  </button>
                 </div>
 
                 {/* Content details */}
