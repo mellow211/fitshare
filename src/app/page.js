@@ -28,8 +28,8 @@ export default function DashboardPage() {
   const [selectedStyle, setSelectedStyle] = useState('전체');
   const [selectedStatus, setSelectedStatus] = useState('전체');
 
-  // Child Size Matcher
-  const [isMatcherOpen, setIsMatcherOpen] = useState(false);
+  // Child Size Matcher & AI Matching active state
+  const [isAiMatchingActive, setIsAiMatchingActive] = useState(false);
   const [childSize, setChildSize] = useState({
     height: '',
     weight: '',
@@ -145,6 +145,7 @@ export default function DashboardPage() {
 
   const handleClearSizes = () => {
     setChildSize({ height: '', weight: '', shoulder: '', chest: '', waist: '', length: '' });
+    setIsAiMatchingActive(false);
   };
 
   // Get compatibility score & message for a specific garment
@@ -212,7 +213,7 @@ export default function DashboardPage() {
 
     // Sizing filter
     const comp = checkCompatibility(item);
-    const matchesSize = !isMatcherOpen || !childSize.height || !comp || 
+    const matchesSize = !isAiMatchingActive || !childSize.height || !comp || 
                         (comp.status === 'fit' || comp.status === 'loose');
 
     return matchesSearch && matchesCategory && matchesStyle && matchesStatus && matchesSize;
@@ -522,107 +523,80 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Child Size Matcher expandable box */}
+      {/* Child Size Matcher - Permanently open, styled for kids */}
       <div className={styles.matcherPanel}>
-        <div 
-          className={styles.matcherTitle} 
-          style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', userSelect: 'none' }}
-          onClick={() => setIsMatcherOpen(!isMatcherOpen)}
-        >
-          <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Ruler size={18} style={{ color: 'hsl(var(--primary))' }} /> 
-            내 아이 맞춤 사이즈 매칭 필터 {isMatcherOpen ? '▲' : '▼'}
-          </span>
-          {childSize.height && (
-            <span style={{ fontSize: '13px', color: 'hsl(var(--primary))', fontWeight: '700' }}>
-              자녀 키: {childSize.height}cm / 몸무게: {childSize.weight}kg 설정 완료 🎯
-            </span>
-          )}
+        <div className={styles.matcherTitle}>
+          <Ruler size={20} style={{ color: 'hsl(var(--primary))' }} /> 
+          <span>🤖 AI 맞춤 사이즈 매칭 필터</span>
         </div>
 
-        {isMatcherOpen && (
-          <div className="fade-in" style={{ marginTop: '20px' }}>
-            <div className={styles.matcherInputs}>
-              <div>
-                <label className={styles.formLabel}>아이 키 (cm)</label>
-                <input 
-                  type="number" 
-                  value={childSize.height} 
-                  onChange={(e) => handleSizeInput('height', e.target.value)} 
-                  className="input-field" 
-                  placeholder="예: 130"
-                />
-              </div>
-              <div>
-                <label className={styles.formLabel}>아이 몸무게 (kg)</label>
-                <input 
-                  type="number" 
-                  value={childSize.weight} 
-                  onChange={(e) => handleSizeInput('weight', e.target.value)} 
-                  className="input-field" 
-                  placeholder="예: 30"
-                />
-              </div>
-              <div>
-                <label className={styles.formLabel}>어깨 너비 (cm)</label>
-                <input 
-                  type="number" 
-                  value={childSize.shoulder} 
-                  onChange={(e) => handleSizeInput('shoulder', e.target.value)} 
-                  className="input-field" 
-                  placeholder="자동 계산"
-                />
-              </div>
-              <div>
-                <label className={styles.formLabel}>가슴 단면 (cm)</label>
-                <input 
-                  type="number" 
-                  value={childSize.chest} 
-                  onChange={(e) => handleSizeInput('chest', e.target.value)} 
-                  className="input-field" 
-                  placeholder="자동 계산"
-                />
-              </div>
-              <div>
-                <label className={styles.formLabel}>허리 단면 (cm)</label>
-                <input 
-                  type="number" 
-                  value={childSize.waist} 
-                  onChange={(e) => handleSizeInput('waist', e.target.value)} 
-                  className="input-field" 
-                  placeholder="자동 계산"
-                />
-              </div>
-              <div>
-                <label className={styles.formLabel}>바지 총장 (cm)</label>
-                <input 
-                  type="number" 
-                  value={childSize.length} 
-                  onChange={(e) => handleSizeInput('length', e.target.value)} 
-                  className="input-field" 
-                  placeholder="자동 계산"
-                />
-              </div>
+        <div className="fade-in" style={{ marginTop: '10px' }}>
+          <div className={styles.matcherInputsRow}>
+            <div className={styles.matcherInputGroup}>
+              <label className={styles.matcherInputLabel}>자녀 키 (cm)</label>
+              <input 
+                type="number" 
+                value={childSize.height} 
+                onChange={(e) => handleSizeInput('height', e.target.value)} 
+                className={styles.matcherLargeInput} 
+                placeholder="예: 130"
+              />
             </div>
-            
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', flexWrap: 'wrap', gap: '10px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'hsl(var(--muted-foreground))' }}>
-                <Info size={14} style={{ color: 'hsl(var(--primary))', flexShrink: 0 }} />
-                <span>키와 몸무게를 입력하면 표준 신체 치수가 자동 설정되며, 자녀보다 너무 작거나 비추천하는 크기의 옷은 똑똑하게 필터링됩니다.</span>
-              </div>
-              {childSize.height && (
-                <button className="glow-btn-secondary" style={{ padding: '8px 16px', fontSize: '12px', borderRadius: 'var(--radius-sm)' }} onClick={handleClearSizes}>
-                  필터 지우기 🔄
-                </button>
-              )}
+            <div className={styles.matcherInputGroup}>
+              <label className={styles.matcherInputLabel}>자녀 몸무게 (kg)</label>
+              <input 
+                type="number" 
+                value={childSize.weight} 
+                onChange={(e) => handleSizeInput('weight', e.target.value)} 
+                className={styles.matcherLargeInput} 
+                placeholder="예: 30"
+              />
             </div>
+
+            <button
+              type="button"
+              className={`${styles.magicWandBtn} ${isAiMatchingActive ? styles.magicWandBtnActive : ''}`}
+              onClick={() => {
+                if (!childSize.height) {
+                  alert('아이의 키를 입력한 뒤 요술봉을 흔들어 주세요! 🧙‍♂️');
+                  return;
+                }
+                setIsAiMatchingActive(!isAiMatchingActive);
+              }}
+            >
+              {isAiMatchingActive ? '✨ AI 요술봉 작동 중!' : '✨ AI 요술봉으로 내 옷 찾기'}
+            </button>
           </div>
-        )}
+
+          {/* Show estimated specs badges only when height is present */}
+          {childSize.height && (
+            <div className="fade-in">
+              <div className={styles.estimatedSpecGrid}>
+                <span className={styles.estimatedSpecBadge}>📏 어깨너비: {childSize.shoulder || '--'}cm</span>
+                <span className={styles.estimatedSpecBadge}>📏 가슴단면: {childSize.chest || '--'}cm</span>
+                <span className={styles.estimatedSpecBadge}>📏 허리단면: {childSize.waist || '--'}cm</span>
+                <span className={styles.estimatedSpecBadge}>📏 하의기장: {childSize.length || '--'}cm</span>
+              </div>
+            </div>
+          )}
+          
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', flexWrap: 'wrap', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'hsl(var(--muted-foreground))' }}>
+              <Info size={14} style={{ color: 'hsl(var(--primary))', flexShrink: 0 }} />
+              <span>키와 몸무게를 입력하고 <b>AI 요술봉</b>을 켜면, 자녀 신체 지수보다 작거나 맞지 않는 의류를 자동으로 제외합니다.</span>
+            </div>
+            {childSize.height && (
+              <button className="glow-btn-secondary" style={{ padding: '8px 16px', fontSize: '12px', borderRadius: 'var(--radius-sm)' }} onClick={handleClearSizes}>
+                필터 지우기 🔄
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Grid Filtering options */}
-      <div className={styles.filterSection}>
-        <div className={styles.searchBar}>
+      <div className={styles.filterSection} style={{ flexDirection: 'column', alignItems: 'stretch', gap: '20px' }}>
+        <div className={styles.searchBar} style={{ maxWidth: '100%' }}>
           <div style={{ position: 'relative' }}>
             <input 
               type="text" 
@@ -630,45 +604,63 @@ export default function DashboardPage() {
               onChange={(e) => setSearchQuery(e.target.value)} 
               placeholder="의류 이름 또는 색상 검색..." 
               className="input-field"
-              style={{ paddingLeft: '38px', borderRadius: 'var(--radius-md)' }}
+              style={{ paddingLeft: '38px', borderRadius: 'var(--radius-md)', width: '100%', height: '48px', fontSize: '15px' }}
             />
-            <Search size={16} style={{ position: 'absolute', left: '14px', top: '13px', color: 'hsl(var(--muted-foreground))' }} />
+            <Search size={18} style={{ position: 'absolute', left: '14px', top: '15px', color: 'hsl(var(--muted-foreground))' }} />
           </div>
         </div>
 
-        <div className={styles.tagFilters}>
-          {/* Category Filters */}
-          {[['전체', '전체 🌈'], ['상의', '상의 👕'], ['하의', '하의 👖'], ['아우터', '아우터 🧥']].map(([key, label]) => (
-            <button 
-              key={key} 
-              className={`${styles.filterTag} ${selectedCategory === key ? styles.filterTagActive : ''}`}
-              onClick={() => setSelectedCategory(key)}
-            >
-              {label}
-            </button>
-          ))}
-          <div style={{ width: '1px', background: 'hsl(var(--border))', margin: '0 4px' }} />
-          {/* Style Filters */}
-          {[['전체', '전체 💫'], ['교복', '교복 👔'], ['체육복', '체육복 🏃'], ['일상복', '일상복 🧸']].map(([key, label]) => (
-            <button 
-              key={key} 
-              className={`${styles.filterTag} ${selectedStyle === key ? styles.filterTagActive : ''}`}
-              onClick={() => setSelectedStyle(key)}
-            >
-              {label}
-            </button>
-          ))}
-          <div style={{ width: '1px', background: 'hsl(var(--border))', margin: '0 4px' }} />
-          {/* Status Filters */}
-          {[['전체', '전체 🏷️'], ['available', '신청가능 🌱'], ['reserved', '예약됨 🔒']].map(([key, label]) => (
-            <button 
-              key={key} 
-              className={`${styles.filterTag} ${selectedStatus === key ? styles.filterTagActive : ''}`}
-              onClick={() => setSelectedStatus(key)}
-            >
-              {label}
-            </button>
-          ))}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Row 1: 종류별 & 스타일별 */}
+          <div className={styles.filterGroupRow}>
+            <div className={styles.filterSubGroup}>
+              <span className={styles.filterGroupLabel}>의류 종류별</span>
+              <div className={styles.tagFilters}>
+                {[['전체', '전체 🌈'], ['상의', '상의 👕'], ['하의', '하의 👖'], ['아우터', '아우터 🧥']].map(([key, label]) => (
+                  <button 
+                    key={key} 
+                    className={`${styles.filterTag} ${selectedCategory === key ? styles.filterTagActive : ''}`}
+                    onClick={() => setSelectedCategory(key)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className={styles.filterSubGroup}>
+              <span className={styles.filterGroupLabel}>의류 스타일별</span>
+              <div className={styles.tagFilters}>
+                {[['전체', '전체 💫'], ['교복', '교복 👔'], ['체육복', '체육복 🏃'], ['일상복', '일상복 🧸']].map(([key, label]) => (
+                  <button 
+                    key={key} 
+                    className={`${styles.filterTag} ${selectedStyle === key ? styles.filterTagActive : ''}`}
+                    onClick={() => setSelectedStyle(key)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Row 2: 상태별 */}
+          <div className={styles.filterGroupRow}>
+            <div className={styles.filterSubGroup} style={{ width: '100%' }}>
+              <span className={styles.filterGroupLabel}>예약 상태별</span>
+              <div className={styles.tagFilters}>
+                {[['전체', '전체 🏷️'], ['available', '신청가능 🌱'], ['reserved', '예약됨 🔒']].map(([key, label]) => (
+                  <button 
+                    key={key} 
+                    className={`${styles.filterTag} ${selectedStatus === key ? styles.filterTagActive : ''}`}
+                    onClick={() => setSelectedStatus(key)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -719,23 +711,35 @@ export default function DashboardPage() {
 
                 {/* Content details */}
                 <div className={styles.cardContent}>
-                  <span className={styles.cardCategory}>{cloth.style} • {cloth.category}</span>
+                  <div className={styles.tagWrapper}>
+                    <span className={styles.categoryBadge}>{cloth.style}</span>
+                    <span className={styles.categoryBadge}>{cloth.category}</span>
+                    <span className={styles.aiTag}>🤖 AI 자동태그</span>
+                  </div>
+                  
                   <h3 className={styles.cardName}>{cloth.name}</h3>
 
                   <div className={styles.cardSpecs}>
                     <span className={styles.specTag}>🎨 {cloth.color}</span>
-                    {cloth.category === '하의' ? (
-                      <>
-                        <span className={styles.specTag}>📐 허리: {cloth.measurements.waist}cm</span>
-                        <span className={styles.specTag}>📏 기장: {cloth.measurements.length}cm</span>
-                      </>
-                    ) : (
-                      <>
-                        <span className={styles.specTag}>📐 어깨: {cloth.measurements.shoulder}cm</span>
-                        <span className={styles.specTag}>📐 가슴: {cloth.measurements.chest}cm</span>
-                        <span className={styles.specTag}>📏 총장: {cloth.measurements.length}cm</span>
-                      </>
-                    )}
+                  </div>
+
+                  {/* AI Estimated Measurements Block */}
+                  <div className={styles.aiMeasureCard}>
+                    <span className={styles.aiMeasureHeader}>📏 AI 실측 치수</span>
+                    <div className={styles.aiMeasureSpecs}>
+                      {cloth.category === '하의' ? (
+                        <>
+                          <span>허리 {cloth.measurements.waist}cm</span>
+                          <span>기장 {cloth.measurements.length}cm</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>어깨 {cloth.measurements.shoulder}cm</span>
+                          <span>가슴 {cloth.measurements.chest}cm</span>
+                          <span>총장 {cloth.measurements.length}cm</span>
+                        </>
+                      )}
+                    </div>
                   </div>
 
                   {/* Compatibility Badge */}
