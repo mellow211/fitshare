@@ -465,6 +465,9 @@
 /* tactile Save Button */
 .saveButton {
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+  white-space: nowrap !important;
+  font-size: 0.85rem !important;
+  padding: 0 8px !important;
 }
 
 .saveButton:not(:disabled):hover {

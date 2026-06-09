@@ -1168,7 +1168,7 @@ export default function AdminPage() {
             <div className={styles.actionRow}>
               <button 
                 className="glow-btn-secondary" 
-                style={{ flex: 1 }}
+                style={{ flex: 1, whiteSpace: 'nowrap', fontSize: '0.85rem', padding: '0 8px' }}
                 onClick={() => setStep(2)}
                 disabled={isLoading}
               >
@@ -1176,7 +1176,7 @@ export default function AdminPage() {
               </button>
               <button 
                 className={`glow-btn ${styles.saveButton}`} 
-                style={{ flex: 1 }}
+                style={{ flex: 1, whiteSpace: 'nowrap', fontSize: '0.85rem', padding: '0 8px' }}
                 onClick={handleSave}
                 disabled={isLoading}
               >
