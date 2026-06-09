@@ -248,6 +248,16 @@ export default function AdminPage() {
     const x = (e.clientX - rect.left) / rect.width;
     const y = (e.clientY - rect.top) / rect.height;
 
+    // Prevent duplicate/bouncing clicks on the exact same coordinate (esp. for touch screens)
+    if (markers.length > 0) {
+      const lastMarker = markers[markers.length - 1];
+      const dist = Math.sqrt(Math.pow(lastMarker.x - x, 2) + Math.pow(lastMarker.y - y, 2));
+      if (dist < 0.03) {
+        console.log('Duplicate marker click ignored');
+        return;
+      }
+    }
+
     setMarkers([...markers, { x, y }]);
   };
 
@@ -292,10 +302,21 @@ export default function AdminPage() {
       const srcData = srcImgData.data;
 
       // 1. Get original high-res points from normalized coordinates
+      console.log('DEBUG WarpAndAnalyze - Image info:', {
+        imgWidth,
+        imgHeight,
+        originalImgWidth: img.width,
+        originalImgHeight: img.height,
+        rotation,
+        isRotated,
+        markers
+      });
       const pts = markers.map(m => ({
         x: m.x * imgWidth,
         y: m.y * imgHeight
       }));
+      console.log('DEBUG WarpAndAnalyze - Computed pts JSON:', JSON.stringify(pts));
+      console.log('DEBUG WarpAndAnalyze - Markers JSON:', JSON.stringify(markers));
 
       // Create destination canvas for warped ortho-image (500x500 pixels = 100cm x 100cm)
       const destWidth = 500;
@@ -657,6 +678,19 @@ export default function AdminPage() {
               <button className="glow-btn" style={{ pointerEvents: 'none' }}>
                 <Upload size={18} /> 사진 촬영하기
               </button>
+              <button 
+                id="mock-upload-btn"
+                className="glow-btn-secondary" 
+                style={{ marginTop: '10px', zIndex: 10 }}
+                onClick={async (e) => {
+                  e.preventDefault();
+                  const blob = await fetch('/test.png').then(r => r.blob());
+                  const file = new File([blob], 'test.png', { type: 'image/png' });
+                  handleFileChange({ target: { files: [file] } });
+                }}
+              >
+                [개발자 디버그] test.png 가상 업로드
+              </button>
             </div>
             <input 
               id="camera-upload"
@@ -674,7 +708,13 @@ export default function AdminPage() {
       {step === 2 && (
         <div className={`${styles.setupGrid} fade-in`}>
           {/* Main Calibration canvas wrapper */}
-          <div className={styles.canvasContainer} style={{ position: 'relative' }}>
+          <div className={`${styles.canvasContainer} scanning-container`} style={{ position: 'relative' }}>
+            {/* Technical scanning brackets overlay */}
+            <div className="scanning-bracket scanning-bracket-tl" />
+            <div className="scanning-bracket scanning-bracket-tr" />
+            <div className="scanning-bracket scanning-bracket-bl" />
+            <div className="scanning-bracket scanning-bracket-br" />
+            
             <canvas 
               ref={displayCanvasRef}
               className={styles.interactiveCanvas}
@@ -799,7 +839,13 @@ export default function AdminPage() {
       {step === 3 && (
         <div className={`${styles.workspaceGrid} fade-in`}>
           {/* Draggable handle interface overlaid on warped canvas */}
-          <div className={styles.editorCanvasContainer} ref={workspaceRef}>
+          <div className={`${styles.editorCanvasContainer} scanning-container`} ref={workspaceRef}>
+            {/* Technical scanning brackets overlay */}
+            <div className="scanning-bracket scanning-bracket-tl" />
+            <div className="scanning-bracket scanning-bracket-tr" />
+            <div className="scanning-bracket scanning-bracket-bl" />
+            <div className="scanning-bracket scanning-bracket-br" />
+
             {/* The corrected orthophoto */}
             <img 
               src={warpedImageSrc} 

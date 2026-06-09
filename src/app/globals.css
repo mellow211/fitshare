@@ -2,34 +2,34 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Gaegu:wght@400;700&display=swap');
 
 :root {
-  /* HSL Color Tokens - Bright Eco Friendly Light Theme */
+  /* HSL Color Tokens - Premium Bright Eco Friendly Light Theme */
   --font-sans: 'Inter', sans-serif;
   --font-title: 'Outfit', sans-serif;
   --font-child: 'Gaegu', cursive, sans-serif;
 
-  --background: 140 25% 97%;          /* Soft warm light-green minty background */
-  --foreground: 150 45% 12%;          /* Dark forest green for high readability */
+  --background: 140 20% 99%;          /* Clean white with a tiny mint tint */
+  --foreground: 150 40% 10%;          /* Deep rich green-black for high contrast readability */
   
   --card: 0 0% 100%;                  /* Pure white card backgrounds */
-  --card-foreground: 150 45% 12%;
-  --card-border: 140 20% 90%;
+  --card-foreground: 150 40% 10%;
+  --card-border: 140 12% 93%;
   
-  --primary: 142 68% 36%;             /* Trustworthy Eco Green (#15803d) */
-  --primary-foreground: 144 80% 98%;
+  --primary: 162 76% 33%;             /* Clean Premium Emerald Eco Green (#059669) */
+  --primary-foreground: 160 80% 98%;
   
-  --secondary: 199 89% 48%;           /* Playful Sky Blue */
+  --secondary: 197 93% 43%;           /* Playful Sky Blue */
   --secondary-foreground: 200 100% 99%;
   
   --accent: 38 92% 50%;               /* Warm Sunshine Yellow */
-  --accent-foreground: 150 45% 12%;
+  --accent-foreground: 150 40% 10%;
   
-  --muted: 140 20% 93%;               /* Light grey-green for muted elements */
-  --muted-foreground: 150 15% 42%;
+  --muted: 140 12% 95%;               /* Soft grey-green for muted elements */
+  --muted-foreground: 150 10% 40%;
   
-  --border: 140 20% 88%;
-  --ring: 142 68% 36%;
+  --border: 140 12% 91%;
+  --ring: 162 76% 33%;
   
-  --success: 142 68% 36%;
+  --success: 162 76% 33%;
   --warning: 38 92% 50%;
   --danger: 350 80% 55%;
 
@@ -44,9 +44,9 @@
   --radius-sm: 10px;
 
   /* Glassmorphism light styling variables */
-  --glass-bg: rgba(255, 255, 255, 0.75);
-  --glass-border: rgba(255, 255, 255, 0.5);
-  --glass-shadow: rgba(16, 185, 129, 0.08); /* Mint glow shadow */
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.6);
+  --glass-shadow: rgba(5, 150, 105, 0.05); /* Premium soft emerald shadow */
 }
 
 /* Reset and base styles */
@@ -60,7 +60,7 @@
 
 body {
   font-family: var(--font-sans);
-  background: linear-gradient(135deg, hsl(var(--background)) 0%, #e8f5ed 100%);
+  background: linear-gradient(135deg, #ffffff 0%, #f4faf6 100%);
   background-attachment: fixed;
   color: hsl(var(--foreground));
   min-height: 100vh;
@@ -307,3 +307,51 @@ button, input, select, textarea {
   box-shadow: 0 4px 10px rgba(0,0,0,0.1);
   z-index: 100;
 }
+
+/* AI Scanning Brackets / Corner markings */
+.scanning-container {
+  position: relative;
+}
+
+.scanning-bracket {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border: 4px solid #10b981;
+  z-index: 6;
+  pointer-events: none;
+  opacity: 0.85;
+}
+
+.scanning-bracket-tl {
+  top: 15px;
+  left: 15px;
+  border-right: none;
+  border-bottom: none;
+  border-top-left-radius: 8px;
+}
+
+.scanning-bracket-tr {
+  top: 15px;
+  right: 15px;
+  border-left: none;
+  border-bottom: none;
+  border-top-right-radius: 8px;
+}
+
+.scanning-bracket-bl {
+  bottom: 15px;
+  left: 15px;
+  border-right: none;
+  border-top: none;
+  border-bottom-left-radius: 8px;
+}
+
+.scanning-bracket-br {
+  bottom: 15px;
+  right: 15px;
+  border-left: none;
+  border-top: none;
+  border-bottom-right-radius: 8px;
+}
+

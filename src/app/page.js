@@ -97,6 +97,14 @@ export default function DashboardPage() {
     triggerToast(`'${code}' 옷장에 접속했습니다.`);
   };
 
+  const handleJoinDemo = () => {
+    localStorage.setItem('fitshare_active_space', 'default-wardrobe');
+    setSpaceCode('default-wardrobe');
+    setEnteredSpaceCode('default-wardrobe');
+    setIsSpaceLoaded(true);
+    triggerToast(`'default-wardrobe' 데모 옷장에 접속했습니다.`);
+  };
+
   const handleLeaveSpace = () => {
     localStorage.removeItem('fitshare_active_space');
     setSpaceCode('');
@@ -316,51 +324,137 @@ export default function DashboardPage() {
   // Welcome Screen (Enter space code)
   if (!isSpaceLoaded) {
     return (
-      <div className={styles.welcomeCard}>
-        {/* Playful Eco-Friendly Welcome SVG Illustration */}
-        <svg width="140" height="140" viewBox="0 0 120 120" fill="none" style={{ margin: '0 auto 20px auto', display: 'block', filter: 'drop-shadow(0 8px 16px rgba(16,185,129,0.15))' }}>
-          <circle cx="60" cy="60" r="54" fill="#e8f5ed" />
-          {/* Main Closet frame */}
-          <rect x="35" y="35" width="50" height="55" rx="8" fill="#ffffff" stroke="#16a34a" strokeWidth="3" />
-          <line x1="60" y1="35" x2="60" y2="90" stroke="#16a34a" strokeWidth="2" />
-          <circle cx="53" cy="62" r="3" fill="#16a34a" />
-          <circle cx="67" cy="62" r="3" fill="#16a34a" />
-          
-          {/* Eco Leaves growing out of closet */}
-          <path d="M60 25C60 25 70 18 78 26C78 26 70 34 60 25Z" fill="#22c55e" />
-          <path d="M60 25C60 25 50 18 42 26C42 26 50 34 60 25Z" fill="#22c55e" />
-          <line x1="60" y1="25" x2="60" y2="35" stroke="#16a34a" strokeWidth="2.5" />
-          
-          {/* Small clothes hanger floating */}
-          <path d="M30 45C30 45 20 50 22 56C24 60 38 60 38 60" stroke="#0ea5e9" strokeWidth="2.5" strokeLinecap="round" />
-          <path d="M90 45C90 45 100 50 98 56C96 60 82 60 82 60" stroke="#0ea5e9" strokeWidth="2.5" strokeLinecap="round" />
-          <path d="M30 45C32 40 38 40 40 45" stroke="#0ea5e9" strokeWidth="2" />
-        </svg>
+      <div className={styles.container} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '85vh', justifyContent: 'center' }}>
+        <div className={styles.heroContainer}>
+          <div className={styles.heroLeft}>
+            <span className={styles.heroTag}>🌱 AI 기반 학교 의류 자원 순환 시스템</span>
+            <h1 className={styles.heroTitle}>
+              버려지는 아동복,<br />
+              <span className="gradient-text" style={{ fontWeight: '900' }}>AI로 학교에서 순환하다</span>
+            </h1>
+            <p className={styles.heroDesc}>
+              작아져서 더 이상 입지 못하는 교복과 체육복을 스마트하게 나눔하고 재활용합니다. 
+              AI 정밀 실측과 신체 데이터 매칭 기능으로 우리 아이에게 완벽히 맞는 의류를 지금 찾아보세요.
+            </p>
 
-        <h1 className={styles.welcomeTitle}>
-          🌱 <span className="gradient-text">우리 학교 스마트 옷장</span>
-        </h1>
-        <p className={styles.welcomeDesc}>
-          작아져서 못 입는 교복과 체육복을 나눔하고 재활용하는 따뜻한 친환경 옷장입니다. 우리 학교 전용 코드를 입력하고 들어가 보세요!
-        </p>
-        <form onSubmit={handleJoinSpace}>
-          <div className={styles.spaceInputRow}>
-            <input 
-              type="text" 
-              value={enteredSpaceCode} 
-              onChange={(e) => setEnteredSpaceCode(e.target.value)} 
-              placeholder="예: seosol-elementary" 
-              className="input-field"
-              style={{ padding: '14px 20px', fontSize: '15px', borderRadius: 'var(--radius-md)' }}
-            />
-            <button type="submit" className="glow-btn" style={{ padding: '14px 28px', borderRadius: 'var(--radius-md)' }}>
-              옷장 구경하기 🎒
-            </button>
+            <form onSubmit={handleJoinSpace} style={{ width: '100%', maxWidth: '520px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div className={styles.spaceInputRow} style={{ width: '100%', margin: '0' }}>
+                <input 
+                  type="text" 
+                  value={enteredSpaceCode} 
+                  onChange={(e) => setEnteredSpaceCode(e.target.value)} 
+                  placeholder="학교 코드 입력 (예: seosol-elementary)" 
+                  className="input-field"
+                  style={{ padding: '16px 20px', fontSize: '15px', borderRadius: 'var(--radius-md)', border: '2px solid hsl(var(--primary)/0.25)' }}
+                />
+                <button type="submit" className="glow-btn" style={{ padding: '16px 28px', borderRadius: 'var(--radius-md)', fontSize: '15px', whiteSpace: 'nowrap' }}>
+                  스마트 옷장 입장하기 🎒
+                </button>
+              </div>
+
+              <button 
+                type="button" 
+                className="glow-btn-secondary" 
+                onClick={handleJoinDemo}
+                style={{ 
+                  border: '2px dashed hsl(var(--primary))', 
+                  color: 'hsl(var(--primary))', 
+                  background: 'transparent',
+                  padding: '14px 24px',
+                  fontSize: '14px',
+                  fontWeight: '800',
+                  borderRadius: 'var(--radius-md)',
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                  boxShadow: 'none'
+                }}
+              >
+                ▶ 심사위원용 데모 옷장 바로가기 (로그인 생략)
+              </button>
+            </form>
           </div>
-        </form>
-        <p style={{ marginTop: '22px', fontSize: '12px', color: 'hsl(var(--muted-foreground))' }}>
-          * 입력하지 않을 시 기본 체험용 옷장(default-wardrobe)으로 입장합니다.
-        </p>
+
+          <div className={styles.heroRight}>
+            <div className={styles.illustrationContainer}>
+              <div className={styles.illustrationBox}>
+                {/* Technical scanning brackets overlay */}
+                <div className={`${styles.illustrationBracket} ${styles.illustrationBracketTL}`} />
+                <div className={`${styles.illustrationBracket} ${styles.illustrationBracketTR}`} />
+                <div className={`${styles.illustrationBracket} ${styles.illustrationBracketBL}`} />
+                <div className={`${styles.illustrationBracket} ${styles.illustrationBracketBR}`} />
+                
+                {/* Floating animated hanger with clothes */}
+                <div className={styles.floatHanger}>
+                  <svg width="160" height="160" viewBox="0 0 100 100" fill="none">
+                    {/* Hanger hook */}
+                    <path d="M50 35 C50 25, 60 25, 60 30 C60 32, 53 35, 50 38" stroke="hsl(var(--primary))" strokeWidth="3.5" strokeLinecap="round" />
+                    {/* Hanger shoulders */}
+                    <path d="M20 50 L50 38 L80 50" stroke="hsl(var(--primary))" strokeWidth="3.5" strokeLinecap="round" />
+                    {/* Hanging T-shirt */}
+                    <path d="M30 46 L35 44 L38 48 L44 48 L50 44 L56 48 L62 48 L65 44 L70 46 L75 62 L65 62 L65 82 L35 82 L35 62 L25 62 Z" fill="#f0faf4" stroke="hsl(var(--primary))" strokeWidth="2.5" />
+                    {/* AI crosshair in center of shirt */}
+                    <circle cx="50" cy="62" r="10" stroke="hsl(var(--secondary))" strokeWidth="1.5" strokeDasharray="3,3" />
+                    <line x1="50" y1="48" x2="50" y2="76" stroke="hsl(var(--secondary))" strokeWidth="1.5" />
+                    <line x1="36" y1="62" x2="64" y2="62" stroke="hsl(var(--secondary))" strokeWidth="1.5" />
+                    <circle cx="50" cy="62" r="2" fill="hsl(var(--secondary))" />
+                  </svg>
+                </div>
+
+                {/* Glowing scanning laser bar */}
+                <div className="scannerOverlay">
+                  <div className="scanLine" />
+                </div>
+              </div>
+
+              {/* Float leaf decoration */}
+              <div className={styles.floatLeaf}>
+                <Sparkles size={20} style={{ color: '#059669' }} />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 3-Step Process Cards Section */}
+        <div className={styles.stepSection}>
+          <h2 className={styles.stepSectionTitle}>스마트 옷장 핵심 프로세스</h2>
+          <div className={styles.stepCardGrid}>
+            
+            <div className={styles.stepCard}>
+              <div className={styles.stepCardIcon}>
+                <Smartphone size={22} />
+              </div>
+              <h3 className={styles.stepCardTitle}>1. 의류 스캔 및 데이터화</h3>
+              <p className={styles.stepCardDesc}>
+                기부할 옷을 촬영해 올리면 AI가 원근 왜곡을 자동 보정하고 어깨너비, 가슴단면, 기장 등 세부 실측 수치를 고정밀 분석합니다.
+              </p>
+            </div>
+
+            <div className={styles.stepCard}>
+              <div className={styles.stepCardIcon}>
+                <Ruler size={22} />
+              </div>
+              <h3 className={styles.stepCardTitle}>2. 신체 데이터 매칭</h3>
+              <p className={styles.stepCardDesc}>
+                자녀의 키와 몸무게를 입력하면 표준 신체 지수를 산출하여, 작아서 맞지 않는 옷은 사전에 거르고 예쁘게 맞는 크기의 의류만 골라냅니다.
+              </p>
+            </div>
+
+            <div className={styles.stepCard}>
+              <div className={styles.stepCardIcon}>
+                <Sparkles size={22} />
+              </div>
+              <h3 className={styles.stepCardTitle}>3. AI 맞춤 코디 추천</h3>
+              <p className={styles.stepCardDesc}>
+                기증된 품목 중 현재 신청 가능한 의류들의 색상 Harmony와 교복·체육복·일상복 스타일을 연산해 최적의 조합 세트를 추천합니다.
+              </p>
+            </div>
+
+          </div>
+        </div>
       </div>
     );
   }
@@ -380,28 +474,27 @@ export default function DashboardPage() {
       )}
 
       {/* Main Header */}
-      <div className={styles.header}>
+      <div className={styles.header} style={{ borderBottom: '1px solid hsl(var(--border))', paddingBottom: '24px', marginBottom: '40px' }}>
         <div className={styles.brand}>
-          <h1 className={styles.mainTitle}>
-            🎒 FitShare <span className="gradient-text">우리 학교 옷장</span>
+          <span style={{ fontSize: '12px', fontWeight: '800', color: 'hsl(var(--primary))', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <MapPin size={12} /> {spaceCode} 전용 옷장 🟢
+          </span>
+          <h1 className={styles.mainTitle} style={{ fontSize: '30px', marginTop: '6px' }}>
+            🎒 FitShare <span className="gradient-text">우리 학교 스마트 옷장</span>
           </h1>
-          <p className={styles.subtitle}>
-            <MapPin size={14} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'middle', color: 'hsl(var(--primary))' }} />
-            현재 학교 옷장: <strong style={{ color: 'hsl(var(--primary))' }}>{spaceCode}</strong> 🟢
-          </p>
         </div>
 
         <div className={styles.actionRow}>
+          <button className="glow-btn" onClick={() => router.push('/admin')} style={{ boxShadow: '0 8px 20px rgba(5,150,105,0.12)' }}>
+            <ClipboardList size={16} /> 🧺 의류 스캔 시작하기 (기부)
+          </button>
           <button className="glow-btn-secondary" onClick={() => setIsQRModalOpen(true)}>
-            <Smartphone size={16} /> 📱 모바일 연동 QR
+            <Smartphone size={16} /> 모바일 기기 연동
           </button>
-          <button className="glow-btn-secondary" onClick={() => router.push('/admin')}>
-            <ClipboardList size={16} /> 🧺 옷 기부하기 (등록)
-          </button>
-          <button className="glow-btn-secondary" style={{ padding: '10px' }} onClick={loadClothes}>
+          <button className="glow-btn-secondary" style={{ padding: '12px' }} onClick={loadClothes} title="새로고침">
             <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
           </button>
-          <button className="glow-btn-secondary" onClick={handleLeaveSpace} style={{ border: '1px solid hsl(var(--danger)/0.2)', color: 'hsl(var(--danger))' }}>
+          <button className="glow-btn-secondary" onClick={handleLeaveSpace} style={{ border: '1px solid hsl(var(--danger)/0.15)', color: 'hsl(var(--danger))' }}>
             옷장 나가기
           </button>
         </div>
@@ -722,7 +815,18 @@ export default function DashboardPage() {
             </button>
 
             {/* Left side: Canvas overlay with glowing lines */}
-            <div className={styles.modalImageArea}>
+            <div className={`${styles.modalImageArea} scanning-container`} style={{ overflow: 'hidden', position: 'relative', borderRight: '1px solid hsl(var(--border))' }}>
+              {/* Technical scanning brackets overlay */}
+              <div className="scanning-bracket scanning-bracket-tl" />
+              <div className="scanning-bracket scanning-bracket-tr" />
+              <div className="scanning-bracket scanning-bracket-bl" />
+              <div className="scanning-bracket scanning-bracket-br" />
+              
+              {/* Scanning status banner */}
+              <div style={{ position: 'absolute', top: '24px', left: '50%', transform: 'translateX(-50%)', background: 'rgba(5,150,105,0.85)', color: '#fff', fontSize: '11px', fontWeight: '800', padding: '4px 12px', borderRadius: '4px', zIndex: 10, display: 'flex', alignItems: 'center', gap: '4px', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.2)' }}>
+                <Sparkles size={12} /> AI 실측 치수 오버레이 활성
+              </div>
+
               <img src={selectedCloth.image_url} alt={selectedCloth.name} className={styles.modalImage} />
               
               {/* Measurement lines SVG overlay */}
