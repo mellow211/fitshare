@@ -1176,7 +1176,7 @@ export default function AdminPage() {
               </button>
               <button 
                 className={`glow-btn ${styles.saveButton}`} 
-                style={{ flex: 1.5 }}
+                style={{ flex: 1 }}
                 onClick={handleSave}
                 disabled={isLoading}
               >
