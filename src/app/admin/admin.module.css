@@ -49,10 +49,10 @@
 
 .progressBar {
   width: 100%;
-  height: 6px;
+  height: 2px;
   background: hsl(var(--muted));
-  border-radius: 3px;
-  margin-bottom: 40px;
+  border-radius: 1px;
+  margin-bottom: 30px;
   overflow: hidden;
 }
 

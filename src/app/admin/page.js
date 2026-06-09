@@ -787,8 +787,8 @@ export default function AdminPage() {
                     <span>배경 지우기 세기 조절</span>
                     <span>{tolerance}</span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', width: '100%' }}>
-                    <span style={{ fontSize: '14px', opacity: 0.6 }}>☁️</span>
+                  <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: '12px', width: '100%' }}>
+                    <span style={{ fontSize: '14px', opacity: 0.6, flexShrink: 0 }}>☁️</span>
                     <input 
                       type="range"
                       min="10"
@@ -798,7 +798,7 @@ export default function AdminPage() {
                       className={styles.sliderInput}
                       style={{ flexGrow: 1 }}
                     />
-                    <span style={{ fontSize: '14px', opacity: 0.6 }}>☁️☁️</span>
+                    <span style={{ fontSize: '14px', opacity: 0.6, flexShrink: 0 }}>☁️</span>
                   </div>
                 </div>
               )}
@@ -824,7 +824,7 @@ export default function AdminPage() {
               <h3 className={styles.cardSectionTitle}>
                 <Maximize2 size={16} /> [Step 3. 실제 크기 측정 기준점 찍기] ({markers.length}/4)
               </h3>
-              <p style={{ fontSize: '12px', color: 'var(--muted-foreground)', marginTop: '8px', lineHeight: '1.4' }}>
+              <p style={{ fontSize: '12px', color: '#6B7280', marginTop: '8px', marginBottom: '12px', lineHeight: '1.5' }}>
                 촬영 박스 내의 실제 가로/세로 100cm 꼭짓점 4곳을 깜빡이는 미니맵에 맞게 순서대로 클릭하세요:
               </p>
               
