@@ -671,7 +671,7 @@ export default function AdminPage() {
             <h1 className={styles.stepTitle}>
               {step === 1 && '옷 기증 사진 업로드'}
               {step === 2 && '✨ AI 의류 자동 스캐너'}
-              {step === 3 && '치수 검수 및 저장'}
+              {step === 3 && '📏 옷 사이즈 확인 및 저장하기'}
             </h1>
             <p className={styles.stepSubtitle}>
               {step === 1 && '기증받을 옷의 정면 사진을 올려주세요. (모바일 촬영 지원)'}
@@ -1044,7 +1044,7 @@ export default function AdminPage() {
           {/* Form edit and save inputs */}
           <div className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <h3 className={styles.cardSectionTitle}>
-              <Check size={16} /> 의류 메타데이터 및 실측 결과
+              <Check size={16} /> 📝 AI가 분석한 옷 정보
             </h3>
 
             <div className={styles.formGrid}>
@@ -1054,7 +1054,7 @@ export default function AdminPage() {
                   type="text" 
                   value={name} 
                   onChange={(e) => setName(e.target.value)} 
-                  className="input-field" 
+                  className={`input-field ${styles.adminInputField}`} 
                   placeholder="예: OOO초 체육복 상의"
                 />
               </div>
@@ -1065,7 +1065,7 @@ export default function AdminPage() {
                   <select 
                     value={category} 
                     onChange={(e) => setCategory(e.target.value)}
-                    className="input-field"
+                    className={`input-field ${styles.adminInputField}`}
                     style={{ appearance: 'auto' }}
                   >
                     <option value="상의">상의</option>
@@ -1078,7 +1078,7 @@ export default function AdminPage() {
                   <select 
                     value={style} 
                     onChange={(e) => setStyle(e.target.value)}
-                    className="input-field"
+                    className={`input-field ${styles.adminInputField}`}
                     style={{ appearance: 'auto' }}
                   >
                     <option value="교복">교복</option>
@@ -1094,7 +1094,7 @@ export default function AdminPage() {
                   type="text" 
                   value={color} 
                   onChange={(e) => setColor(e.target.value)} 
-                  className="input-field"
+                  className={`input-field ${styles.adminInputField}`}
                   placeholder="예: 네이비, 화이트, 블랙"
                 />
               </div>
@@ -1131,13 +1131,13 @@ export default function AdminPage() {
                       {getDistance('chest')}<span className={styles.dimensionUnit}>cm</span>
                     </span>
                   </div>
-                  <div className={styles.dimensionBox} style={{ marginTop: '10px' }}>
+                  <div className={styles.dimensionBox}>
                     <span className={styles.dimensionName} style={{ borderLeft: '3px solid hsl(var(--neon-sleeve))', paddingLeft: '6px' }}>소매 길이</span>
                     <span className={styles.dimensionValue} style={{ color: 'hsl(var(--neon-sleeve))' }}>
                       {getDistance('sleeve')}<span className={styles.dimensionUnit}>cm</span>
                     </span>
                   </div>
-                  <div className={styles.dimensionBox} style={{ marginTop: '10px' }}>
+                  <div className={styles.dimensionBox}>
                     <span className={styles.dimensionName} style={{ borderLeft: '3px solid hsl(var(--neon-length))', paddingLeft: '6px' }}>의류 총장</span>
                     <span className={styles.dimensionValue} style={{ color: 'hsl(var(--neon-length))' }}>
                       {getDistance('length')}<span className={styles.dimensionUnit}>cm</span>
@@ -1147,8 +1147,8 @@ export default function AdminPage() {
               )}
             </div>
 
-            <div className={styles.markerItem} style={{ background: 'hsl(var(--muted)/0.3)', padding: '10px', borderRadius: 'var(--radius-sm)', border: '1px dashed hsl(var(--border))' }}>
-              <Info size={16} style={{ color: 'hsl(var(--primary))', flexShrink: 0 }} />
+            <div className={styles.markerItem} style={{ background: 'hsl(var(--muted)/0.3)', padding: '10px', borderRadius: 'var(--radius-sm)', border: '1px dashed hsl(var(--border))', alignItems: 'center' }}>
+              <span style={{ fontSize: '16px', marginRight: '6px', lineHeight: '1.2' }}>💡</span>
               <p style={{ fontSize: '11px', color: 'var(--muted-foreground)', lineHeight: '1.3' }}>
                 화면 좌측 이미지의 동그라미 조절점(●)을 마우스나 손가락으로 드래그하면 실측 치수가 실시간으로 갱신됩니다.
               </p>
@@ -1164,12 +1164,12 @@ export default function AdminPage() {
                 재보정하기
               </button>
               <button 
-                className="glow-btn" 
+                className={`glow-btn ${styles.saveButton}`} 
                 style={{ flex: 1.5 }}
                 onClick={handleSave}
                 disabled={isLoading}
               >
-                <Save size={16} /> 옷장에 저장하기
+                <Save size={16} /> ✨ 이 옷 옷장에 넣기
               </button>
             </div>
           </div>

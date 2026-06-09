@@ -289,15 +289,28 @@
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 15px;
-  background: hsl(var(--muted) / 0.4);
-  padding: 15px;
+  background: #f8faf9 !important; /* Soft light mint background */
+  padding: 18px;
   border-radius: var(--radius-md);
-  border: 1px solid hsl(var(--border));
+  border: 1.5px dashed hsl(var(--primary) / 0.25) !important; /* Dashed receipt tag border */
+  box-shadow: 0 4px 16px rgba(5, 150, 105, 0.04);
+  position: relative;
 }
 
 .dimensionBox {
   display: flex;
   flex-direction: column;
+  background: #ffffff;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(5, 150, 105, 0.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03); /* Pop-out shadow */
+  transition: all 0.2s ease;
+}
+
+.dimensionBox:hover {
+  transform: translateY(-1.5px);
+  box-shadow: 0 6px 16px rgba(5, 150, 105, 0.08);
 }
 
 .dimensionName {
@@ -306,12 +319,13 @@
 }
 
 .dimensionValue {
-  font-size: 22px;
+  font-size: 28px !important; /* 1.2x larger */
   font-family: var(--font-title);
-  font-weight: 700;
+  font-weight: 900 !important; /* Extra Bold/900 */
   display: flex;
   align-items: baseline;
   gap: 3px;
+  margin-top: 4px;
 }
 
 .dimensionUnit {
@@ -322,7 +336,7 @@
 
 .actionRow {
   display: flex;
-  gap: 15px;
+  gap: 20px;
   margin-top: 20px;
 }
 
@@ -405,6 +419,31 @@
 /* Roomy Step margins in control panel */
 .controlStep {
   margin-bottom: 24px;
+}
+
+/* Premium styled Admin Input/Select elements */
+.adminInputField {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 1.5px solid #cbd5e1 !important; /* Soft gray border */
+  border-radius: 8px !important; /* Rounded corners */
+  font-weight: 600 !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.adminInputField:focus {
+  border-color: hsl(var(--primary)) !important;
+  box-shadow: 0 0 0 4px rgba(5, 150, 105, 0.15) !important; /* Emerald glow */
+  background: #ffffff !important;
+}
+
+/* tactile Save Button */
+.saveButton {
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+
+.saveButton:not(:disabled):hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 8px 20px rgba(34, 197, 94, 0.3) !important;
 }
 
 
