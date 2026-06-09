@@ -670,12 +670,12 @@ export default function AdminPage() {
           <div>
             <h1 className={styles.stepTitle}>
               {step === 1 && '옷 기증 사진 업로드'}
-              {step === 2 && '배경 제거 및 촬영 상자 보정'}
+              {step === 2 && '✨ AI 의류 자동 스캐너'}
               {step === 3 && '치수 검수 및 저장'}
             </h1>
             <p className={styles.stepSubtitle}>
               {step === 1 && '기증받을 옷의 정면 사진을 올려주세요. (모바일 촬영 지원)'}
-              {step === 2 && '크로마키 배경의 경계를 조절하고, 촬영 박스의 4개 모서리 꼭짓점을 클릭해주세요.'}
+              {step === 2 && 'AI가 옷의 크기를 정확하게 잴 수 있도록 아래 3단계를 순서대로 진행해 주세요.'}
               {step === 3 && 'AI가 분석한 치수선 위치를 직접 맞춰서 정확한 사이즈를 확인하고 옷장에 추가합니다.'}
             </p>
           </div>
@@ -762,8 +762,8 @@ export default function AdminPage() {
           </div>
 
           {/* Control parameters */}
-          <div className={`glass-panel ${styles.controlCard}`} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            <div>
+          <div className={`glass-panel ${styles.controlCard}`} style={{ padding: '24px', display: 'flex', flexDirection: 'column' }}>
+            <div className={styles.controlStep}>
               <h3 className={styles.cardSectionTitle}>
                 <Sliders size={16} /> [Step 1. 배경 지우기]
               </h3>
@@ -787,7 +787,7 @@ export default function AdminPage() {
                     <span>배경 지우기 세기 조절</span>
                     <span>{tolerance}</span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', width: '100%' }}>
                     <span style={{ fontSize: '14px', opacity: 0.6 }}>☁️</span>
                     <input 
                       type="range"
@@ -796,6 +796,7 @@ export default function AdminPage() {
                       value={tolerance}
                       onChange={(e) => setTolerance(e.target.value)}
                       className={styles.sliderInput}
+                      style={{ flexGrow: 1 }}
                     />
                     <span style={{ fontSize: '14px', opacity: 0.6 }}>☁️☁️</span>
                   </div>
@@ -803,7 +804,7 @@ export default function AdminPage() {
               )}
             </div>
 
-            <div>
+            <div className={styles.controlStep}>
               <h3 className={styles.cardSectionTitle}>
                 <RotateCw size={16} /> [Step 2. 사진 방향 맞추기]
               </h3>
@@ -819,7 +820,7 @@ export default function AdminPage() {
               </button>
             </div>
 
-            <div>
+            <div className={styles.controlStep}>
               <h3 className={styles.cardSectionTitle}>
                 <Maximize2 size={16} /> [Step 3. 실제 크기 측정 기준점 찍기] ({markers.length}/4)
               </h3>

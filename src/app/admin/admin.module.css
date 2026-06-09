@@ -385,7 +385,7 @@
 /* Revamped high-visibility, tactile CTA button */
 .ctaButton {
   height: 52px !important;
-  font-size: 16px !important;
+  font-size: 14.5px !important; /* Slightly smaller to prevent text wrapping */
   font-weight: 800 !important;
   border-radius: var(--radius-md) !important;
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
@@ -393,6 +393,7 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
+  white-space: nowrap !important; /* Prevent text wrapping */
 }
 
 .ctaButton:not(:disabled):hover {
@@ -400,4 +401,10 @@
   box-shadow: 0 10px 25px rgba(22, 163, 74, 0.35) !important;
   filter: brightness(1.08);
 }
+
+/* Roomy Step margins in control panel */
+.controlStep {
+  margin-bottom: 24px;
+}
+
 
