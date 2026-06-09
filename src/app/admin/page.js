@@ -80,11 +80,21 @@ export default function AdminPage() {
       
       const reader = new FileReader();
       reader.onload = (event) => {
-        setImageSrc(event.target.result);
-        setMarkers([]); // Reset markers
-        setRotation(0); // Reset rotation for new image
-        setStep(2);
-        setIsLoading(false);
+        const testImg = new Image();
+        testImg.src = event.target.result;
+        testImg.onload = () => {
+          setImageSrc(event.target.result);
+          setMarkers([]); // Reset markers
+          // Auto-detect if image is landscape (width > height).
+          // If it is, rotate it 90 degrees clockwise by default to display it upright (portrait).
+          if (testImg.width > testImg.height) {
+            setRotation(90);
+          } else {
+            setRotation(0);
+          }
+          setStep(2);
+          setIsLoading(false);
+        };
       };
       reader.readAsDataURL(compressedBlob);
     } catch (err) {
@@ -92,11 +102,19 @@ export default function AdminPage() {
       // Fallback
       const reader = new FileReader();
       reader.onload = (event) => {
-        setImageSrc(event.target.result);
-        setMarkers([]);
-        setRotation(0);
-        setStep(2);
-        setIsLoading(false);
+        const testImg = new Image();
+        testImg.src = event.target.result;
+        testImg.onload = () => {
+          setImageSrc(event.target.result);
+          setMarkers([]);
+          if (testImg.width > testImg.height) {
+            setRotation(90);
+          } else {
+            setRotation(0);
+          }
+          setStep(2);
+          setIsLoading(false);
+        };
       };
       reader.readAsDataURL(file);
     }
