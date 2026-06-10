@@ -1,8 +1,32 @@
 import { NextResponse } from 'next/server';
 
+const KIDS_STANDARD_SIZES = {
+  '상의': {
+    '120': { shoulder: 32, chest: 37, sleeve: 43, length: 48 },
+    '130': { shoulder: 34, chest: 39, sleeve: 47, length: 52 },
+    '140': { shoulder: 36, chest: 42, sleeve: 51, length: 57 },
+    '150': { shoulder: 38, chest: 45, sleeve: 55, length: 62 },
+    '160': { shoulder: 40, chest: 48, sleeve: 59, length: 67 }
+  },
+  '아우터': {
+    '120': { shoulder: 33, chest: 38, sleeve: 44, length: 49 },
+    '130': { shoulder: 35, chest: 40, sleeve: 48, length: 53 },
+    '140': { shoulder: 37, chest: 43, sleeve: 52, length: 58 },
+    '150': { shoulder: 39, chest: 46, sleeve: 56, length: 63 },
+    '160': { shoulder: 41, chest: 49, sleeve: 60, length: 68 }
+  },
+  '하의': {
+    '120': { waist: 25, length: 68 },
+    '130': { waist: 26, length: 74 },
+    '140': { waist: 28, length: 80 },
+    '150': { waist: 30, length: 86 },
+    '160': { waist: 32, length: 92 }
+  }
+};
+
 export async function POST(req) {
   try {
-    const { image, categoryHint } = await req.json();
+    const { image, categoryHint, mode, standardSize } = await req.json();
 
     if (!image) {
       return NextResponse.json({ error: 'Image is required' }, { status: 400 });
@@ -19,16 +43,35 @@ export async function POST(req) {
       await new Promise(resolve => setTimeout(resolve, 800));
 
       const isPants = categoryHint === '하의' || (categoryHint !== '상의' && Math.random() > 0.5);
+      const detectedCategory = isPants ? '하의' : (categoryHint === '아우터' ? '아우터' : '상의');
+      const detectedStyle = detectedCategory === '아우터' ? '교복' : '체육복';
       
-      if (isPants) {
+      let measurements = {};
+      if (detectedCategory === '하의') {
+        measurements = {
+          waist: 28 + Math.floor(Math.random() * 4), // 28 ~ 31 cm
+          length: 68 + Math.floor(Math.random() * 10) // 68 ~ 77 cm
+        };
+      } else {
+        measurements = {
+          shoulder: 36 + Math.floor(Math.random() * 6), // 36 ~ 41 cm
+          chest: 42 + Math.floor(Math.random() * 6),    // 42 ~ 47 cm
+          sleeve: 48 + Math.floor(Math.random() * 8),   // 48 ~ 55 cm
+          length: 54 + Math.floor(Math.random() * 8)    // 54 ~ 61 cm
+        };
+      }
+
+      // If easy mode is active and standard size is provided, override with standard sizes
+      if (mode === 'easy' && standardSize && KIDS_STANDARD_SIZES[detectedCategory]?.[standardSize]) {
+        measurements = KIDS_STANDARD_SIZES[detectedCategory][standardSize];
+      }
+
+      if (detectedCategory === '하의') {
         return NextResponse.json({
           category: '하의',
           color: '네이비',
-          style: '체육服',
-          measurements: {
-            waist: 28 + Math.floor(Math.random() * 4), // 28 ~ 31 cm (flat width)
-            length: 68 + Math.floor(Math.random() * 10) // 68 ~ 77 cm
-          },
+          style: detectedStyle,
+          measurements,
           guidelines: {
             waist_y: 15,
             length_start_y: 15,
@@ -36,17 +79,11 @@ export async function POST(req) {
           }
         });
       } else {
-        const isOuter = categoryHint === '아우터';
         return NextResponse.json({
-          category: isOuter ? '아우터' : '상의',
+          category: detectedCategory,
           color: '네이비',
-          style: isOuter ? '교복' : '체육복',
-          measurements: {
-            shoulder: 36 + Math.floor(Math.random() * 6), // 36 ~ 41 cm
-            chest: 42 + Math.floor(Math.random() * 6),    // 42 ~ 47 cm
-            sleeve: 48 + Math.floor(Math.random() * 8),   // 48 ~ 55 cm
-            length: 54 + Math.floor(Math.random() * 8)    // 54 ~ 61 cm
-          },
+          style: detectedStyle,
+          measurements,
           guidelines: {
             shoulder_y: 20,
             chest_y: 36,
@@ -169,7 +206,6 @@ Schema:
         responseText = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
 
         if (responseText) {
-          // Success! Break out of the retry loop
           console.log(`Successfully analyzed image using model: ${modelName}`);
           break;
         } else {
@@ -192,6 +228,13 @@ Schema:
     }
 
     const result = JSON.parse(cleanText.trim());
+
+    // If easy mode is active and standard size is provided, override measurements with standard chart
+    const detectedCategory = result.category || '상의';
+    if (mode === 'easy' && standardSize && KIDS_STANDARD_SIZES[detectedCategory]?.[standardSize]) {
+      result.measurements = KIDS_STANDARD_SIZES[detectedCategory][standardSize];
+    }
+
     return NextResponse.json(result);
 
   } catch (error) {

@@ -5,7 +5,69 @@ import { supabase, isMock } from './supabase';
  * Resizes the image to max 800px width/height and compresses to JPEG format.
  * Returns a Promise that resolves to a Blob.
  */
+/**
+ * Reads the EXIF Orientation tag from a JPEG file blob.
+ * Returns a Promise that resolves to the orientation number, or -1 if not found.
+ */
+function getExifOrientation(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const view = new DataView(e.target.result);
+      if (view.byteLength < 2 || view.getUint16(0, false) !== 0xFFD8) {
+        resolve(-2); // Not a JPEG
+        return;
+      }
+      const length = view.byteLength;
+      let offset = 2;
+      while (offset < length) {
+        if (offset + 2 > length) break;
+        const marker = view.getUint16(offset, false);
+        offset += 2;
+        if (marker === 0xFFE1) {
+          if (offset + 6 > length) break;
+          if (view.getUint32(offset, false) !== 0x45786966) {
+            resolve(-1);
+            return;
+          }
+          offset += 6;
+          const little = view.getUint16(offset, false) === 0x4949;
+          offset += 2;
+          if (offset + 2 > length) break;
+          const tags = view.getUint16(offset, little);
+          offset += 2;
+          for (let i = 0; i < tags; i++) {
+            const tagOffset = offset + i * 12;
+            if (tagOffset + 12 > length) break;
+            if (view.getUint16(tagOffset, little) === 0x0112) {
+              resolve(view.getUint16(tagOffset + 8, little));
+              return;
+            }
+          }
+        } else if ((marker & 0xFF00) === 0xFF00) {
+          if (offset + 2 > length) break;
+          const markerLength = view.getUint16(offset, false);
+          offset += markerLength;
+        } else {
+          break;
+        }
+      }
+      resolve(-1);
+    };
+    // Read only the first 64KB for performance and efficiency
+    reader.readAsArrayBuffer(file.slice(0, 65536));
+  });
+}
+
+/**
+ * Compresses an image file client-side using Canvas.
+ * Resizes the image to max 800px width/height and compresses to JPEG format.
+ * Returns a Promise that resolves to a Blob.
+ */
 export async function compressImage(file, maxWidth = 800, maxHeight = 800, quality = 0.7) {
+  // Read EXIF orientation to correct canvas drawing rotation
+  const orientation = await getExifOrientation(file);
+
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
@@ -14,26 +76,54 @@ export async function compressImage(file, maxWidth = 800, maxHeight = 800, quali
       img.src = event.target.result;
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
+        
+        // Check if rotated 90 or 270 degrees
+        const isRotated = orientation === 5 || orientation === 6 || orientation === 7 || orientation === 8;
+        const targetWidth = isRotated ? img.height : img.width;
+        const targetHeight = isRotated ? img.width : img.height;
+
+        let newWidth = targetWidth;
+        let newHeight = targetHeight;
 
         // Calculate new dimensions preserving aspect ratio
-        if (width > height) {
-          if (width > maxWidth) {
-            height = Math.round((height * maxWidth) / width);
-            width = maxWidth;
+        if (targetWidth > targetHeight) {
+          if (targetWidth > maxWidth) {
+            newHeight = Math.round((targetHeight * maxWidth) / targetWidth);
+            newWidth = maxWidth;
           }
         } else {
-          if (height > maxHeight) {
-            width = Math.round((width * maxHeight) / height);
-            height = maxHeight;
+          if (targetHeight > maxHeight) {
+            newWidth = Math.round((targetWidth * maxHeight) / targetHeight);
+            newHeight = maxHeight;
           }
         }
 
-        canvas.width = width;
-        canvas.height = height;
+        canvas.width = newWidth;
+        canvas.height = newHeight;
         const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
+
+        // Apply transformations based on EXIF orientation to draw image upright
+        ctx.save();
+        if (orientation === 3) {
+          // 180 degrees
+          ctx.translate(newWidth, newHeight);
+          ctx.rotate(Math.PI);
+          ctx.drawImage(img, 0, 0, newWidth, newHeight);
+        } else if (orientation === 6) {
+          // Rotate 90 degrees CW
+          ctx.translate(newWidth, 0);
+          ctx.rotate(90 * Math.PI / 180);
+          ctx.drawImage(img, 0, 0, newHeight, newWidth);
+        } else if (orientation === 8) {
+          // Rotate 270 degrees CW
+          ctx.translate(0, newHeight);
+          ctx.rotate(270 * Math.PI / 180);
+          ctx.drawImage(img, 0, 0, newHeight, newWidth);
+        } else {
+          // Normal drawing
+          ctx.drawImage(img, 0, 0, newWidth, newHeight);
+        }
+        ctx.restore();
 
         canvas.toBlob(
           (blob) => {

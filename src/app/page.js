@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Sparkles, Search, SlidersHorizontal, RefreshCw, Smartphone, 
-  MapPin, Check, QrCode, ClipboardList, Ruler, Info, ShoppingBag, Trash2, X
+  MapPin, Check, QrCode, ClipboardList, Ruler, Info, ShoppingBag, Trash2, X,
+  Loader2
 } from 'lucide-react';
 import styles from './dashboard.module.css';
 import { getClothes, reserveCloth, deleteCloth } from '../lib/db';
@@ -38,6 +39,12 @@ export default function DashboardPage() {
     waist: '',
     length: ''
   });
+
+  // AI Outfit Recommendations
+  const [aiRecommendations, setAiRecommendations] = useState([]);
+  const [isRecommendLoading, setIsRecommendLoading] = useState(false);
+  const [selectedOutfit, setSelectedOutfit] = useState(null);
+  const [isOutfitReserveModalOpen, setIsOutfitReserveModalOpen] = useState(false);
 
   // Active Interactive Modal
   const [selectedCloth, setSelectedCloth] = useState(null);
@@ -147,6 +154,51 @@ export default function DashboardPage() {
     setChildSize({ height: '', weight: '', shoulder: '', chest: '', waist: '', length: '' });
     setIsAiMatchingActive(false);
   };
+
+  const fetchOutfitRecommendations = async (compatibleItems) => {
+    if (compatibleItems.length === 0) {
+      setAiRecommendations([]);
+      return;
+    }
+    setIsRecommendLoading(true);
+    try {
+      const response = await fetch('/api/recommend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          clothes: compatibleItems, 
+          childSize: childSize 
+        })
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setAiRecommendations(data);
+      } else {
+        console.warn('Failed to fetch outfit recommendations');
+        setAiRecommendations([]);
+      }
+    } catch (e) {
+      console.error(e);
+      setAiRecommendations([]);
+    } finally {
+      setIsRecommendLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!isAiMatchingActive) {
+      setAiRecommendations([]);
+      return;
+    }
+    
+    const compatibleItems = clothes.filter(item => {
+      if (item.status !== 'available') return false;
+      const comp = checkCompatibility(item);
+      return !comp || comp.status === 'fit' || comp.status === 'loose';
+    });
+    
+    fetchOutfitRecommendations(compatibleItems);
+  }, [isAiMatchingActive, childSize.height, childSize.weight, clothes]);
 
   // Get compatibility score & message for a specific garment
   const checkCompatibility = (item) => {
@@ -305,6 +357,53 @@ export default function DashboardPage() {
     } catch (e) {
       console.error(e);
       triggerToast('예약 처리 중 오류가 발생했습니다.');
+    }
+  };
+
+  const openOutfitReserveModal = (outfit) => {
+    setSelectedOutfit(outfit);
+    setIsOutfitReserveModalOpen(true);
+  };
+
+  const handleReserveOutfit = async () => {
+    if (!reserveName.trim() || !reserveGrade.trim() || !reservePhone.trim()) {
+      triggerToast('예약자 정보를 모두 입력해 주세요.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { reserveCloth } = await import('../lib/db');
+      const reservation = {
+        student_name: reserveName,
+        grade: reserveGrade,
+        parent_phone: reservePhone
+      };
+
+      if (selectedOutfit.top) {
+        await reserveCloth(spaceCode, selectedOutfit.top.id, reservation);
+      }
+      if (selectedOutfit.bottom) {
+        await reserveCloth(spaceCode, selectedOutfit.bottom.id, reservation);
+      }
+      if (selectedOutfit.outer) {
+        await reserveCloth(spaceCode, selectedOutfit.outer.id, reservation);
+      }
+
+      triggerToast('나눔 코디 세트 예약이 완료되었습니다. 학교로 방문해주세요!');
+      setIsOutfitReserveModalOpen(false);
+      setSelectedOutfit(null);
+      
+      setReserveName('');
+      setReserveGrade('');
+      setReservePhone('');
+
+      loadClothes(); // Refresh
+    } catch (e) {
+      console.error(e);
+      triggerToast('세트 예약 처리 중 오류가 발생했습니다.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -753,44 +852,124 @@ export default function DashboardPage() {
       )}
 
       {/* Outfit Recommendations Panel */}
-      {!isLoading && recommendations.length > 0 && (
-        <div className={`${styles.recommendSection} fade-in`}>
-          <h2 className={styles.recommendTitle}>
-            💡 <span className="gradient-text">초록이가 어울리는 나눔 코디를 골라왔어!</span>
-          </h2>
-          <div className={styles.recommendGrid}>
-            {recommendations.map((combo, idx) => (
-              <div key={idx} className={styles.comboCard}>
-                <div className={styles.comboTitle}>{combo.title}</div>
-                <div className={styles.comboItems}>
-                  <div className={styles.comboItemThumb} onClick={() => setSelectedCloth(combo.top)}>
-                    <img src={combo.top.image_url} alt="Top" className={styles.comboItemImg} />
-                    <span style={{ position: 'absolute', bottom: '6px', left: '6px', fontSize: '10px', background: 'rgba(0,0,0,0.6)', color: 'white', padding: '2px 6px', borderRadius: '4px' }}>상의</span>
-                  </div>
-                  <div className={styles.comboItemThumb} onClick={() => setSelectedCloth(combo.bottom)}>
-                    <img src={combo.bottom.image_url} alt="Bottom" className={styles.comboItemImg} />
-                    <span style={{ position: 'absolute', bottom: '6px', left: '6px', fontSize: '10px', background: 'rgba(0,0,0,0.6)', color: 'white', padding: '2px 6px', borderRadius: '4px' }}>하의</span>
-                  </div>
+      {!isLoading && (
+        <>
+          {isAiMatchingActive ? (
+            // --- AI Magic Codi Book (Magic Wand Mode Active) ---
+            <div className={`${styles.recommendSection} ${styles.magicCodiSection} fade-in`} style={{ marginTop: '30px' }}>
+              <div className={styles.magicCodiHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '24px' }}>✨</span>
+                  <h2 className={styles.recommendTitle} style={{ margin: 0 }}>
+                    AI 초록이의 <span className="gradient-text">매직 코디북 (신체 맞춤)</span>
+                  </h2>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px', flexWrap: 'wrap', gap: '8px' }}>
-                  <div style={{ fontSize: '12px', color: 'hsl(var(--muted-foreground))' }}>
-                    추천 자녀 키: <strong>{combo.estHeight}cm 내외</strong>
-                  </div>
-                  <button 
-                    className="glow-btn" 
-                    style={{ padding: '8px 16px', fontSize: '12px', borderRadius: 'var(--radius-sm)' }}
-                    onClick={() => {
-                      setSelectedCloth(combo.top);
-                      triggerToast('상의 상세 정보를 먼저 열어드릴게요! 확인 후 둘 다 분양받으세요.');
-                    }}
-                  >
-                    세트 확인하기 👉
-                  </button>
+                <span className="badge badge-available" style={{ padding: '6px 12px', fontSize: '12px' }}>
+                  자녀 치수 ({childSize.height}cm, {childSize.weight}kg) 맞춤 추천 🤖
+                </span>
+              </div>
+              
+              {isRecommendLoading ? (
+                <div className={styles.recommendLoading} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px', gap: '12px', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-md)', border: '1px solid hsl(var(--border)/0.5)' }}>
+                  <Loader2 className="animate-spin" size={24} style={{ color: 'hsl(var(--primary))' }} />
+                  <span style={{ fontSize: '13px', color: 'var(--muted-foreground)' }}>AI 패션 스타일리스트가 옷을 코디하는 중...</span>
+                </div>
+              ) : aiRecommendations.length === 0 ? (
+                <div className={styles.emptyRecommendations} style={{ textAlign: 'center', padding: '40px', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-md)', border: '1px dashed hsl(var(--border))' }}>
+                  <span style={{ fontSize: '13.5px', color: 'var(--muted-foreground)' }}>💡 이 사이즈에 꼭 맞는 나눔 코디 세트가 아직 없어요. 아래 목록에서 마음에 드는 단품들을 직접 찾아보세요!</span>
+                </div>
+              ) : (
+                <div className={styles.recommendGrid}>
+                  {aiRecommendations.map((combo, idx) => (
+                    <div key={idx} className={`${styles.comboCard} ${styles.magicComboCard}`} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                      <div>
+                        <div className={styles.comboScore} style={{ fontSize: '11px', color: 'hsl(var(--secondary))', fontWeight: '800', marginBottom: '6px' }}>
+                          ★ 코디 조화 지수: <strong>{combo.score}점</strong>
+                        </div>
+                        
+                        <div className={styles.comboTitle} style={{ fontWeight: '800', fontSize: '16px', marginBottom: '12px' }}>{combo.title}</div>
+                        
+                        <div className={styles.comboItems} style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '15px' }}>
+                          <div className={styles.comboItemThumb} style={{ position: 'relative', width: '120px', height: '120px', borderRadius: '8px', overflow: 'hidden', cursor: 'pointer', border: '1px solid hsl(var(--border))' }} onClick={() => setSelectedCloth(combo.top)}>
+                            <img src={combo.top.image_url} alt="Top" className={styles.comboItemImg} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            <span style={{ position: 'absolute', bottom: '6px', left: '6px', fontSize: '10px', background: 'rgba(0,0,0,0.6)', color: 'white', padding: '2px 6px', borderRadius: '4px' }}>상의</span>
+                          </div>
+                          <div className={styles.comboItemThumb} style={{ position: 'relative', width: '120px', height: '120px', borderRadius: '8px', overflow: 'hidden', cursor: 'pointer', border: '1px solid hsl(var(--border))' }} onClick={() => setSelectedCloth(combo.bottom)}>
+                            <img src={combo.bottom.image_url} alt="Bottom" className={styles.comboItemImg} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            <span style={{ position: 'absolute', bottom: '6px', left: '6px', fontSize: '10px', background: 'rgba(0,0,0,0.6)', color: 'white', padding: '2px 6px', borderRadius: '4px' }}>하의</span>
+                          </div>
+                        </div>
+                        
+                        <div className={styles.comboCommentary} style={{ background: 'rgba(255,255,255,0.4)', padding: '12px', borderRadius: '8px', fontSize: '12.5px', lineHeight: '1.5', color: 'var(--foreground)', marginBottom: '15px', border: '1px solid hsl(var(--border)/0.3)' }}>
+                          <p style={{ margin: '0 0 8px 0' }}>{combo.commentary}</p>
+                          <div className={styles.comboTags} style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                            {combo.tags.map((tag, tIdx) => (
+                              <span key={tIdx} className={styles.comboTag} style={{ fontSize: '10px', background: 'hsl(var(--primary)/0.08)', color: 'hsl(var(--primary))', padding: '2px 6px', borderRadius: '4px', fontWeight: '700' }}>{tag}</span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', flexWrap: 'wrap', gap: '8px', borderTop: '1px solid hsl(var(--border)/0.5)', paddingTop: '12px' }}>
+                        <div style={{ fontSize: '11.5px', color: 'var(--muted-foreground)' }}>
+                          어깨: <strong>{combo.top.measurements.shoulder || combo.top.measurements.waist}cm</strong> / 기장: <strong>{combo.bottom.measurements.length}cm</strong>
+                        </div>
+                        <button 
+                          className="glow-btn" 
+                          style={{ padding: '8px 16px', fontSize: '12px', borderRadius: 'var(--radius-sm)' }}
+                          onClick={() => openOutfitReserveModal(combo)}
+                        >
+                          이 세트 한 번에 예약하기 🎒
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            // --- Normal General Recommendations ---
+            recommendations.length > 0 && (
+              <div className={`${styles.recommendSection} fade-in`} style={{ marginTop: '30px' }}>
+                <h2 className={styles.recommendTitle}>
+                  💡 <span className="gradient-text">초록이가 추천하는 조화로운 나눔 코디 세트</span>
+                </h2>
+                <div className={styles.recommendGrid}>
+                  {recommendations.map((combo, idx) => (
+                    <div key={idx} className={styles.comboCard}>
+                      <div className={styles.comboTitle}>{combo.title}</div>
+                      <div className={styles.comboItems}>
+                        <div className={styles.comboItemThumb} onClick={() => setSelectedCloth(combo.top)}>
+                          <img src={combo.top.image_url} alt="Top" className={styles.comboItemImg} />
+                          <span style={{ position: 'absolute', bottom: '6px', left: '6px', fontSize: '10px', background: 'rgba(0,0,0,0.6)', color: 'white', padding: '2px 6px', borderRadius: '4px' }}>상의</span>
+                        </div>
+                        <div className={styles.comboItemThumb} onClick={() => setSelectedCloth(combo.bottom)}>
+                          <img src={combo.bottom.image_url} alt="Bottom" className={styles.comboItemImg} />
+                          <span style={{ position: 'absolute', bottom: '6px', left: '6px', fontSize: '10px', background: 'rgba(0,0,0,0.6)', color: 'white', padding: '2px 6px', borderRadius: '4px' }}>하의</span>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px', flexWrap: 'wrap', gap: '8px' }}>
+                        <div style={{ fontSize: '12px', color: 'hsl(var(--muted-foreground))' }}>
+                          추천 자녀 키: <strong>{combo.estHeight}cm 내외</strong>
+                        </div>
+                        <button 
+                          className="glow-btn" 
+                          style={{ padding: '8px 16px', fontSize: '12px', borderRadius: 'var(--radius-sm)' }}
+                          onClick={() => {
+                            setSelectedCloth(combo.top);
+                            triggerToast('상의 상세 정보를 먼저 열어드릴게요! 확인 후 둘 다 분양받으세요.');
+                          }}
+                        >
+                          세트 확인하기 👉
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
+            )
+          )}
+        </>
       )}
 
       {/* DETAIL MODAL: Visual Inspect Panel */}
@@ -1120,6 +1299,113 @@ export default function DashboardPage() {
                   onClick={handleReserve}
                 >
                   신청 완료하기 🌱
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* OUTFIT RESERVATION INPUT FORM MODAL */}
+      {isOutfitReserveModalOpen && selectedOutfit && (
+        <div className={styles.modalOverlay} onClick={() => { setIsOutfitReserveModalOpen(false); setSelectedOutfit(null); }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '520px', padding: '30px', position: 'relative', border: '1px solid hsl(var(--primary)/0.2)' }} onClick={(e) => e.stopPropagation()}>
+            <button className={styles.closeButton} onClick={() => { setIsOutfitReserveModalOpen(false); setSelectedOutfit(null); }}>
+              <X size={16} />
+            </button>
+
+            <h3 style={{ fontSize: '20px', fontFamily: 'var(--font-title)', fontWeight: '800', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px', color: 'hsl(var(--primary))' }}>
+              🎒 AI 코디 세트 일괄 신청
+            </h3>
+            <p style={{ fontSize: '13px', color: 'hsl(var(--muted-foreground))', marginBottom: '20px', lineHeight: '1.4' }}>
+              선택하신 AI 코디 세트(상의 및 하의 등)를 한 번에 예약합니다. 예약 완료 후 학교 수거함에서 함께 찾아가실 수 있습니다.
+            </p>
+
+            {/* Selected Outfit Preview */}
+            <div style={{ background: 'rgba(5, 150, 105, 0.04)', border: '1px solid rgba(5, 150, 105, 0.15)', borderRadius: 'var(--radius-md)', padding: '16px', marginBottom: '24px' }}>
+              <div style={{ fontWeight: '700', fontSize: '14px', marginBottom: '10px', color: 'hsl(var(--primary))' }}>
+                선택된 코디 세트: <span style={{ color: 'hsl(var(--foreground))' }}>{selectedOutfit.title}</span>
+              </div>
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                {selectedOutfit.top && (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', background: '#fff', border: '1px solid hsl(var(--border))', borderRadius: 'var(--radius-sm)', padding: '8px', flex: 1 }}>
+                    <img src={selectedOutfit.top.image_url} alt="Top" style={{ width: '60px', height: '60px', objectFit: 'contain' }} />
+                    <span style={{ fontSize: '11px', fontWeight: '800', color: 'hsl(var(--muted-foreground))' }}>상의</span>
+                    <span style={{ fontSize: '11px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100px', textAlign: 'center' }} title={selectedOutfit.top.name}>
+                      {selectedOutfit.top.name}
+                    </span>
+                  </div>
+                )}
+                {selectedOutfit.bottom && (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', background: '#fff', border: '1px solid hsl(var(--border))', borderRadius: 'var(--radius-sm)', padding: '8px', flex: 1 }}>
+                    <img src={selectedOutfit.bottom.image_url} alt="Bottom" style={{ width: '60px', height: '60px', objectFit: 'contain' }} />
+                    <span style={{ fontSize: '11px', fontWeight: '800', color: 'hsl(var(--muted-foreground))' }}>하의</span>
+                    <span style={{ fontSize: '11px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100px', textAlign: 'center' }} title={selectedOutfit.bottom.name}>
+                      {selectedOutfit.bottom.name}
+                    </span>
+                  </div>
+                )}
+                {selectedOutfit.outer && (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', background: '#fff', border: '1px solid hsl(var(--border))', borderRadius: 'var(--radius-sm)', padding: '8px', flex: 1 }}>
+                    <img src={selectedOutfit.outer.image_url} alt="Outer" style={{ width: '60px', height: '60px', objectFit: 'contain' }} />
+                    <span style={{ fontSize: '11px', fontWeight: '800', color: 'hsl(var(--muted-foreground))' }}>아우터</span>
+                    <span style={{ fontSize: '11px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100px', textAlign: 'center' }} title={selectedOutfit.outer.name}>
+                      {selectedOutfit.outer.name}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className={styles.formGrid}>
+              <div>
+                <label className={styles.formLabel}>학생 이름</label>
+                <input 
+                  type="text" 
+                  value={reserveName} 
+                  onChange={(e) => setReserveName(e.target.value)} 
+                  className="input-field" 
+                  placeholder="예: 홍길동"
+                  style={{ borderRadius: 'var(--radius-sm)' }}
+                />
+              </div>
+              <div>
+                <label className={styles.formLabel}>학년 및 반</label>
+                <input 
+                  type="text" 
+                  value={reserveGrade} 
+                  onChange={(e) => setReserveGrade(e.target.value)} 
+                  className="input-field" 
+                  placeholder="예: 3학년 2반"
+                  style={{ borderRadius: 'var(--radius-sm)' }}
+                />
+              </div>
+              <div>
+                <label className={styles.formLabel}>학부모 연락처</label>
+                <input 
+                  type="text" 
+                  value={reservePhone} 
+                  onChange={(e) => setReservePhone(e.target.value)} 
+                  className="input-field" 
+                  placeholder="예: 010-1234-5678"
+                  style={{ borderRadius: 'var(--radius-sm)' }}
+                />
+              </div>
+
+              <div style={{ marginTop: '24px', display: 'flex', gap: '12px' }}>
+                <button 
+                  className="glow-btn-secondary" 
+                  style={{ flex: 1, borderRadius: 'var(--radius-md)' }}
+                  onClick={() => { setIsOutfitReserveModalOpen(false); setSelectedOutfit(null); }}
+                >
+                  돌아가기
+                </button>
+                <button 
+                  className="glow-btn" 
+                  style={{ flex: 2, borderRadius: 'var(--radius-md)' }}
+                  onClick={handleReserveOutfit}
+                >
+                  세트 일괄 신청하기 🎒
                 </button>
               </div>
             </div>

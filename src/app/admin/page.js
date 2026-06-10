@@ -9,11 +9,42 @@ import {
 import styles from './admin.module.css';
 import { uploadImage, addCloth } from '../../lib/db';
 
+const KIDS_STANDARD_SIZES = {
+  '상의': {
+    '120': { shoulder: 32, chest: 37, sleeve: 43, length: 48 },
+    '130': { shoulder: 34, chest: 39, sleeve: 47, length: 52 },
+    '140': { shoulder: 36, chest: 42, sleeve: 51, length: 57 },
+    '150': { shoulder: 38, chest: 45, sleeve: 55, length: 62 },
+    '160': { shoulder: 40, chest: 48, sleeve: 59, length: 67 }
+  },
+  '아우터': {
+    '120': { shoulder: 33, chest: 38, sleeve: 44, length: 49 },
+    '130': { shoulder: 35, chest: 40, sleeve: 48, length: 53 },
+    '140': { shoulder: 37, chest: 43, sleeve: 52, length: 58 },
+    '150': { shoulder: 39, chest: 46, sleeve: 56, length: 63 },
+    '160': { shoulder: 41, chest: 49, sleeve: 60, length: 68 }
+  },
+  '하의': {
+    '120': { waist: 25, length: 68 },
+    '130': { waist: 26, length: 74 },
+    '140': { waist: 28, length: 80 },
+    '150': { waist: 30, length: 86 },
+    '160': { waist: 32, length: 92 }
+  }
+};
+
 export default function AdminPage() {
   const router = useRouter();
   const [step, setStep] = useState(1); // 1: Upload, 2: Calibration/Chroma, 3: Edit/Save
   const [imageSrc, setImageSrc] = useState(null);
   const [rotation, setRotation] = useState(0); // 0, 90, 180, 270 (Degrees to rotate image clockwise)
+  
+  // Registration Modes
+  const [mode, setMode] = useState('normal'); // 'normal': 촬영 상자, 'easy': 간편 등록, 'reference': 기준 물체 실측
+  const [standardSize, setStandardSize] = useState('130'); // '120', '130', '140', '150', '160'
+  const [referenceType, setReferenceType] = useState('a4'); // 'a4', 'card', 'ruler30', 'ruler15', 'coin500', 'coin100'
+  const [pxPerCm, setPxPerCm] = useState(null);
+  const [imgDims, setImgDims] = useState({ width: 1200, height: 1200 });
   
   // Chroma Key Settings
   const [chromaMode, setChromaMode] = useState('green'); // 'green', 'blue', 'none'
@@ -21,7 +52,26 @@ export default function AdminPage() {
   
   // Calibration Markers: TL, TR, BR, BL
   const [markers, setMarkers] = useState([]);
-  const markerLabels = ['좌측 상단 (Top-Left)', '우측 상단 (Top-Right)', '우측 하단 (Bottom-Right)', '좌측 하단 (Bottom-Left)'];
+  
+  const getMarkerLabels = () => {
+    if (mode === 'normal') {
+      return ['좌측 상단 (Top-Left)', '우측 상단 (Top-Right)', '우측 하단 (Bottom-Right)', '좌측 하단 (Bottom-Left)'];
+    }
+    if (['a4', 'card'].includes(referenceType)) {
+      return ['좌측 상단 (Top-Left)', '우측 상단 (Top-Right)', '우측 하단 (Bottom-Right)', '좌측 하단 (Bottom-Left)'];
+    }
+    if (['ruler30', 'ruler15'].includes(referenceType)) {
+      return ['자의 한쪽 끝 (Start)', '자의 반대쪽 끝 (End)'];
+    }
+    return ['동전의 한쪽 지름 끝', '동전의 반대쪽 지름 끝'];
+  };
+
+  const getRequiredMarkers = () => {
+    if (mode === 'easy') return 0;
+    if (mode === 'normal') return 4;
+    if (['ruler30', 'ruler15', 'coin500', 'coin100'].includes(referenceType)) return 2;
+    return 4; // a4, card
+  };
   
   // Form Metadata
   const [name, setName] = useState('');
@@ -37,21 +87,29 @@ export default function AdminPage() {
 
   const renderMinimap = (targetIdx) => {
     const isCurrent = markers.length === targetIdx;
-    let tlColor = "#94a3b8";
-    if (markers.length > 0) tlColor = "#10b981";
-    else if (markers.length === 0 && targetIdx === 0) tlColor = "#f43f5e";
+    const req = getRequiredMarkers();
+    
+    const getDotColor = (idx) => {
+      if (markers.length > idx) return "#10b981"; // Set
+      if (markers.length === idx && targetIdx === idx) return "#f43f5e"; // Current target
+      return "#94a3b8"; // Pending
+    };
 
-    let trColor = "#94a3b8";
-    if (markers.length > 1) trColor = "#10b981";
-    else if (markers.length === 1 && targetIdx === 1) trColor = "#f43f5e";
+    if (req === 2) {
+      return (
+        <svg width="24" height="18" viewBox="0 0 24 18" style={{ marginRight: '8px', flexShrink: 0 }}>
+          <rect x="2" y="2" width="20" height="14" rx="2" fill="none" stroke={isCurrent ? "hsl(var(--primary))" : "#cbd5e1"} strokeWidth="1.5" />
+          <circle cx="6" cy="9" r="2.5" fill={getDotColor(0)} className={markers.length === 0 && targetIdx === 0 ? styles.blinkingMinimapDot : ''} />
+          <circle cx="18" cy="9" r="2.5" fill={getDotColor(1)} className={markers.length === 1 && targetIdx === 1 ? styles.blinkingMinimapDot : ''} />
+          {markers.length === 2 && <line x1="6" y1="9" x2="18" y2="9" stroke="#10b981" strokeWidth="1.5" />}
+        </svg>
+      );
+    }
 
-    let brColor = "#94a3b8";
-    if (markers.length > 2) brColor = "#10b981";
-    else if (markers.length === 2 && targetIdx === 2) brColor = "#f43f5e";
-
-    let blColor = "#94a3b8";
-    if (markers.length > 3) blColor = "#10b981";
-    else if (markers.length === 3 && targetIdx === 3) blColor = "#f43f5e";
+    let tlColor = getDotColor(0);
+    let trColor = getDotColor(1);
+    let brColor = getDotColor(2);
+    let blColor = getDotColor(3);
 
     return (
       <svg width="24" height="18" viewBox="0 0 24 18" style={{ marginRight: '8px', flexShrink: 0 }}>
@@ -113,6 +171,7 @@ export default function AdminPage() {
         testImg.src = event.target.result;
         testImg.onload = () => {
           setImageSrc(event.target.result);
+          setImgDims({ width: testImg.width, height: testImg.height });
           setMarkers([]); // Reset markers
           // Auto-detect if image is landscape (width > height).
           // If it is, rotate it 90 degrees clockwise by default to display it upright (portrait).
@@ -135,6 +194,7 @@ export default function AdminPage() {
         testImg.src = event.target.result;
         testImg.onload = () => {
           setImageSrc(event.target.result);
+          setImgDims({ width: testImg.width, height: testImg.height });
           setMarkers([]);
           if (testImg.width > testImg.height) {
             setRotation(90);
@@ -188,7 +248,7 @@ export default function AdminPage() {
       
       drawProcessedImage(originalCanvas, canvas);
     };
-  }, [step, imageSrc, chromaMode, tolerance, markers, rotation]);
+  }, [step, imageSrc, chromaMode, tolerance, markers, rotation, referenceType, mode]);
 
   // Apply Chroma-key Background Removal and draw markers on canvas
   const drawProcessedImage = (srcCanvas, canvas) => {
@@ -235,20 +295,42 @@ export default function AdminPage() {
 
     // Draw calibration markers and connecting lines
     ctx.lineWidth = 2;
+    const req = getRequiredMarkers();
     
     if (markers.length > 0) {
       ctx.strokeStyle = '#f43f5e';
       ctx.beginPath();
-      ctx.moveTo(markers[0].x * canvas.width, markers[0].y * canvas.height);
       
-      for (let i = 1; i < markers.length; i++) {
-        ctx.lineTo(markers[i].x * canvas.width, markers[i].y * canvas.height);
+      if (req === 2) {
+        if (['ruler30', 'ruler15'].includes(referenceType)) {
+          ctx.moveTo(markers[0].x * canvas.width, markers[0].y * canvas.height);
+          if (markers.length === 2) {
+            ctx.lineTo(markers[1].x * canvas.width, markers[1].y * canvas.height);
+          }
+          ctx.stroke();
+        } else {
+          const m0 = markers[0];
+          if (markers.length === 2) {
+            const m1 = markers[1];
+            const cx = ((m0.x + m1.x) / 2) * canvas.width;
+            const cy = ((m0.y + m1.y) / 2) * canvas.height;
+            const dist = Math.sqrt(Math.pow((m1.x - m0.x) * canvas.width, 2) + Math.pow((m1.y - m0.y) * canvas.height, 2));
+            ctx.arc(cx, cy, dist / 2, 0, 2 * Math.PI);
+            ctx.stroke();
+          }
+        }
+      } else {
+        ctx.moveTo(markers[0].x * canvas.width, markers[0].y * canvas.height);
+        
+        for (let i = 1; i < markers.length; i++) {
+          ctx.lineTo(markers[i].x * canvas.width, markers[i].y * canvas.height);
+        }
+        
+        if (markers.length === 4) {
+          ctx.closePath();
+        }
+        ctx.stroke();
       }
-      
-      if (markers.length === 4) {
-        ctx.closePath();
-      }
-      ctx.stroke();
     }
 
     // Draw individual corner marker points
@@ -268,9 +350,10 @@ export default function AdminPage() {
     });
   };
 
-  // Capture mouse clicks on canvas to position 4-corner markers
+  // Capture mouse clicks on canvas to position markers
   const handleCanvasClick = (e) => {
-    if (markers.length >= 4) return; // All markers set
+    const req = getRequiredMarkers();
+    if (markers.length >= req) return; // All markers set
 
     const canvas = displayCanvasRef.current;
     const rect = canvas.getBoundingClientRect();
@@ -296,8 +379,13 @@ export default function AdminPage() {
 
   // Step 2 Action: Apply Bilinear Warping (Homography simulation) and invoke Gemini AI
   const handleWarpAndAnalyze = async () => {
-    if (markers.length < 4) {
-      triggerToast('촬영 상자의 4개 모서리 마커를 모두 지정해주세요.');
+    const req = getRequiredMarkers();
+    if (markers.length < req) {
+      if (mode === 'normal') {
+        triggerToast('촬영 상자의 4개 모서리 마커를 모두 지정해주세요.');
+      } else {
+        triggerToast(`기준 물체의 ${req}개 마커를 모두 지정해주세요.`);
+      }
       return;
     }
 
@@ -327,117 +415,205 @@ export default function AdminPage() {
       oCtx.drawImage(img, -img.width / 2, -img.height / 2, img.width, img.height);
       oCtx.restore();
 
-      const srcImgData = oCtx.getImageData(0, 0, imgWidth, imgHeight);
-      const srcData = srcImgData.data;
+      let finalCanvas;
 
-      // 1. Get original high-res points from normalized coordinates
-      console.log('DEBUG WarpAndAnalyze - Image info:', {
-        imgWidth,
-        imgHeight,
-        originalImgWidth: img.width,
-        originalImgHeight: img.height,
-        rotation,
-        isRotated,
-        markers
-      });
-      const pts = markers.map(m => ({
-        x: m.x * imgWidth,
-        y: m.y * imgHeight
-      }));
-      console.log('DEBUG WarpAndAnalyze - Computed pts JSON:', JSON.stringify(pts));
-      console.log('DEBUG WarpAndAnalyze - Markers JSON:', JSON.stringify(markers));
+      if (mode === 'normal') {
+        // --- 1. Existing Mode: Bilinear Warping (Homography) ---
+        const srcImgData = oCtx.getImageData(0, 0, imgWidth, imgHeight);
+        const srcData = srcImgData.data;
+        const pts = markers.map(m => ({
+          x: m.x * imgWidth,
+          y: m.y * imgHeight
+        }));
 
-      // Create destination canvas for warped ortho-image (500x500 pixels = 100cm x 100cm)
-      const destWidth = 500;
-      const destHeight = 500;
-      const destCanvas = document.createElement('canvas');
-      destCanvas.width = destWidth;
-      destCanvas.height = destHeight;
-      const dCtx = destCanvas.getContext('2d');
-      const destImgData = dCtx.createImageData(destWidth, destHeight);
-      const destData = destImgData.data;
+        const destWidth = 500;
+        const destHeight = 500;
+        const destCanvas = document.createElement('canvas');
+        destCanvas.width = destWidth;
+        destCanvas.height = destHeight;
+        const dCtx = destCanvas.getContext('2d');
+        const destImgData = dCtx.createImageData(destWidth, destHeight);
+        const destData = destImgData.data;
 
-      // 2. Perform bilinear inverse-perspective warping
-      // pts: 0: TL, 1: TR, 2: BR, 3: BL
-      for (let yd = 0; yd < destHeight; yd++) {
-        for (let xd = 0; xd < destWidth; xd++) {
-          const u = xd / (destWidth - 1);
-          const v = yd / (destHeight - 1);
+        for (let yd = 0; yd < destHeight; yd++) {
+          for (let xd = 0; xd < destWidth; xd++) {
+            const u = xd / (destWidth - 1);
+            const v = yd / (destHeight - 1);
 
-          // Bilinear interpolation equations
-          const xs = Math.round(
-            (1 - u) * (1 - v) * pts[0].x +
-            u * (1 - v) * pts[1].x +
-            u * v * pts[2].x +
-            (1 - u) * v * pts[3].x
-          );
+            const xs = Math.round(
+              (1 - u) * (1 - v) * pts[0].x +
+              u * (1 - v) * pts[1].x +
+              u * v * pts[2].x +
+              (1 - u) * v * pts[3].x
+            );
 
-          const ys = Math.round(
-            (1 - u) * (1 - v) * pts[0].y +
-            u * (1 - v) * pts[1].y +
-            u * v * pts[2].y +
-            (1 - u) * v * pts[3].y
-          );
+            const ys = Math.round(
+              (1 - u) * (1 - v) * pts[0].y +
+              u * (1 - v) * pts[1].y +
+              u * v * pts[2].y +
+              (1 - u) * v * pts[3].y
+            );
 
-          // Boundary check
-          let r = 255, g = 255, b = 255, a = 255;
-          if (xs >= 0 && xs < imgWidth && ys >= 0 && ys < imgHeight) {
-            const index = (ys * imgWidth + xs) * 4;
-            r = srcData[index];
-            g = srcData[index + 1];
-            b = srcData[index + 2];
-            a = srcData[index + 3];
+            let r = 255, g = 255, b = 255, a = 255;
+            if (xs >= 0 && xs < imgWidth && ys >= 0 && ys < imgHeight) {
+              const index = (ys * imgWidth + xs) * 4;
+              r = srcData[index];
+              g = srcData[index + 1];
+              b = srcData[index + 2];
+              a = srcData[index + 3];
+            }
+
+            const destIndex = (yd * destWidth + xd) * 4;
+            destData[destIndex] = r;
+            destData[destIndex + 1] = g;
+            destData[destIndex + 2] = b;
+            destData[destIndex + 3] = a;
           }
-
-          const destIndex = (yd * destWidth + xd) * 4;
-          destData[destIndex] = r;
-          destData[destIndex + 1] = g;
-          destData[destIndex + 2] = b;
-          destData[destIndex + 3] = a;
         }
-      }
-      dCtx.putImageData(destImgData, 0, 0);
+        dCtx.putImageData(destImgData, 0, 0);
 
-      // Apply chroma key on the warped 500x500 image directly (48x fewer pixels to process!)
-      if (chromaMode !== 'none') {
-        const destImgDataWarped = dCtx.getImageData(0, 0, destWidth, destHeight);
-        const dData = destImgDataWarped.data;
-        const tol = Number(tolerance);
+        if (chromaMode !== 'none') {
+          const destImgDataWarped = dCtx.getImageData(0, 0, destWidth, destHeight);
+          const dData = destImgDataWarped.data;
+          const tol = Number(tolerance);
+          for (let i = 0; i < dData.length; i += 4) {
+            const r = dData[i]; const g = dData[i + 1]; const b = dData[i + 2];
+            let match = false;
+            if (chromaMode === 'green') {
+              match = g > 75 && g - r > tol - 40 && g - b > tol - 40;
+            } else if (chromaMode === 'blue') {
+              match = b > 75 && b - r > tol - 40 && b - g > tol - 40;
+            }
+            if (match) {
+              dData[i] = 255; dData[i + 1] = 255; dData[i + 2] = 255; dData[i + 3] = 255;
+            }
+          }
+          dCtx.putImageData(destImgDataWarped, 0, 0);
+        }
+        finalCanvas = destCanvas;
+
+      } else if (mode === 'reference') {
+        // --- 2. Reference Object Mode: Calculate Scale & Apply Masking ---
+        const getPixelDistance = (p1, p2, w, h) => {
+          return Math.sqrt(Math.pow((p2.x - p1.x) * w, 2) + Math.pow((p2.y - p1.y) * h, 2));
+        };
+
+        let computedPxPerCm = 0;
+        if (['a4', 'card'].includes(referenceType)) {
+          const w_px = (getPixelDistance(markers[0], markers[1], imgWidth, imgHeight) + getPixelDistance(markers[3], markers[2], imgWidth, imgHeight)) / 2;
+          const h_px = (getPixelDistance(markers[0], markers[3], imgWidth, imgHeight) + getPixelDistance(markers[1], markers[2], imgWidth, imgHeight)) / 2;
+          const realW = referenceType === 'a4' ? 21.0 : 8.56;
+          const realH = referenceType === 'a4' ? 29.7 : 5.4;
+          const scale_x = w_px / realW;
+          const scale_y = h_px / realH;
+          computedPxPerCm = (scale_x + scale_y) / 2;
+        } else {
+          const d_px = getPixelDistance(markers[0], markers[1], imgWidth, imgHeight);
+          let realSize = 30.0;
+          if (referenceType === 'ruler15') realSize = 15.0;
+          else if (referenceType === 'coin500') realSize = 2.65;
+          else if (referenceType === 'coin100') realSize = 2.4;
+          computedPxPerCm = d_px / realSize;
+        }
         
-        for (let i = 0; i < dData.length; i += 4) {
-          const r = dData[i];
-          const g = dData[i + 1];
-          const b = dData[i + 2];
-          let match = false;
-          if (chromaMode === 'green') {
-            match = g > 75 && g - r > tol - 40 && g - b > tol - 40;
-          } else if (chromaMode === 'blue') {
-            match = b > 75 && b - r > tol - 40 && b - g > tol - 40;
-          }
-          if (match) {
-            dData[i] = 255; dData[i + 1] = 255; dData[i + 2] = 255; dData[i + 3] = 255;
-          }
+        if (computedPxPerCm && !isNaN(computedPxPerCm)) {
+          setPxPerCm(computedPxPerCm);
+        } else {
+          setPxPerCm(1.0);
         }
-        dCtx.putImageData(destImgDataWarped, 0, 0);
+
+        // Mask (erase) the reference object from originalCanvas using studio-white background
+        oCtx.fillStyle = '#ffffff';
+        if (['a4', 'card'].includes(referenceType)) {
+          oCtx.beginPath();
+          oCtx.moveTo(markers[0].x * imgWidth, markers[0].y * imgHeight);
+          oCtx.lineTo(markers[1].x * imgWidth, markers[1].y * imgHeight);
+          oCtx.lineTo(markers[2].x * imgWidth, markers[2].y * imgHeight);
+          oCtx.lineTo(markers[3].x * imgWidth, markers[3].y * imgHeight);
+          oCtx.closePath();
+          oCtx.fill();
+        } else if (['ruler30', 'ruler15'].includes(referenceType)) {
+          oCtx.strokeStyle = '#ffffff';
+          oCtx.lineWidth = computedPxPerCm * 4; // Approx 4cm thickness in pixels
+          oCtx.lineCap = 'round';
+          oCtx.beginPath();
+          oCtx.moveTo(markers[0].x * imgWidth, markers[0].y * imgHeight);
+          oCtx.lineTo(markers[1].x * imgWidth, markers[1].y * imgHeight);
+          oCtx.stroke();
+        } else {
+          // Coin
+          const midX = ((markers[0].x + markers[1].x) / 2) * imgWidth;
+          const midY = ((markers[0].y + markers[1].y) / 2) * imgHeight;
+          const d_px = getPixelDistance(markers[0], markers[1], imgWidth, imgHeight);
+          oCtx.beginPath();
+          oCtx.arc(midX, midY, (d_px / 2) * 1.25, 0, 2 * Math.PI); // 25% margin
+          oCtx.fill();
+        }
+
+        if (chromaMode !== 'none') {
+          const imgData = oCtx.getImageData(0, 0, imgWidth, imgHeight);
+          const data = imgData.data;
+          const tol = Number(tolerance);
+          for (let i = 0; i < data.length; i += 4) {
+            const r = data[i]; const g = data[i + 1]; const b = data[i + 2];
+            let match = false;
+            if (chromaMode === 'green') {
+              match = g > 75 && g - r > tol - 40 && g - b > tol - 40;
+            } else if (chromaMode === 'blue') {
+              match = b > 75 && b - r > tol - 40 && b - g > tol - 40;
+            }
+            if (match) {
+              data[i] = 255; data[i + 1] = 255; data[i + 2] = 255; data[i + 3] = 255;
+            }
+          }
+          oCtx.putImageData(imgData, 0, 0);
+        }
+        finalCanvas = originalCanvas;
+
+      } else {
+        // --- 3. Easy Mode: No Calibration/Masking, Just Chroma Key ---
+        if (chromaMode !== 'none') {
+          const imgData = oCtx.getImageData(0, 0, imgWidth, imgHeight);
+          const data = imgData.data;
+          const tol = Number(tolerance);
+          for (let i = 0; i < data.length; i += 4) {
+            const r = data[i]; const g = data[i + 1]; const b = data[i + 2];
+            let match = false;
+            if (chromaMode === 'green') {
+              match = g > 75 && g - r > tol - 40 && g - b > tol - 40;
+            } else if (chromaMode === 'blue') {
+              match = b > 75 && b - r > tol - 40 && b - g > tol - 40;
+            }
+            if (match) {
+              data[i] = 255; data[i + 1] = 255; data[i + 2] = 255; data[i + 3] = 255;
+            }
+          }
+          oCtx.putImageData(imgData, 0, 0);
+        }
+        finalCanvas = originalCanvas;
       }
 
-      const warpedDataURL = destCanvas.toDataURL('image/jpeg', 0.85);
+      const warpedDataURL = finalCanvas.toDataURL('image/jpeg', 0.85);
       setWarpedImageSrc(warpedDataURL);
 
-      // Create a small low-res thumbnail specifically for the Gemini AI analysis payload
-      // This reduces payload size from ~80KB to ~10KB, making API requests nearly instant!
+      // Create AI Analysis low-res thumbnail
       const aiCanvas = document.createElement('canvas');
       aiCanvas.width = 250;
       aiCanvas.height = 250;
       const aiCtx = aiCanvas.getContext('2d');
-      aiCtx.drawImage(destCanvas, 0, 0, 250, 250);
+      aiCtx.drawImage(finalCanvas, 0, 0, 250, 250);
       const aiDataURL = aiCanvas.toDataURL('image/jpeg', 0.5);
 
-      // 3. Call AI Analysis API with the compressed thumbnail
+      // Call AI Analysis API
       const aiResponse = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: aiDataURL, categoryHint: category })
+        body: JSON.stringify({ 
+          image: aiDataURL, 
+          categoryHint: category,
+          mode: mode,
+          standardSize: standardSize
+        })
       });
 
       if (!aiResponse.ok) {
@@ -451,7 +627,6 @@ export default function AdminPage() {
 
       const aiData = await aiResponse.json();
 
-      // Defensive parsing to prevent crashes from incomplete AI JSON structures
       const detectedCategory = aiData.category || '상의';
       const detectedColor = aiData.color || '네이비';
       const detectedStyle = aiData.style || '체육복';
@@ -467,21 +642,17 @@ export default function AdminPage() {
       // Initialize handle coordinates based on Gemini analysis
       if (detectedCategory === '하의') {
         const w_half = ms.waist ? Number(ms.waist) / 2 : 15;
-        
         setLineHandles(prev => ({
           ...prev,
-          waist: { x1: 50 - w_half, y1: gl.waist_y || 15, x2: 50 + w_half, y2: gl.waist_y || 15 },
+          waist: { x1: 35, y1: gl.waist_y || 15, x2: 65, y2: gl.waist_y || 15 },
           pantsLength: { x1: 50, y1: gl.length_start_y || 15, x2: 50, y2: gl.length_end_y || 92 }
         }));
       } else {
-        const s_half = ms.shoulder ? Number(ms.shoulder) / 2 : 20;
-        const c_half = ms.chest ? Number(ms.chest) / 2 : 23;
-        
         setLineHandles(prev => ({
           ...prev,
-          shoulder: { x1: 50 - s_half, y1: gl.shoulder_y || 20, x2: 50 + s_half, y2: gl.shoulder_y || 20 },
-          chest: { x1: 50 - c_half, y1: gl.chest_y || 36, x2: 50 + c_half, y2: gl.chest_y || 36 },
-          sleeve: { x1: 50 - s_half, y1: gl.shoulder_y || 20, x2: gl.sleeve_end_x || 12, y2: 48 },
+          shoulder: { x1: 30, y1: gl.shoulder_y || 20, x2: 70, y2: gl.shoulder_y || 20 },
+          chest: { x1: 25, y1: gl.chest_y || 36, x2: 75, y2: gl.chest_y || 36 },
+          sleeve: { x1: 30, y1: gl.shoulder_y || 20, x2: gl.sleeve_end_x || 12, y2: 48 },
           length: { x1: 50, y1: gl.length_start_y || 20, x2: 50, y2: gl.length_end_y || 88 }
         }));
       }
@@ -497,6 +668,11 @@ export default function AdminPage() {
 
   // Handle Drag Events for measurement coordinates
   const handleHandleStart = (line, point, e) => {
+    // If we are in Easy Mode, we disable dragging to keep measurements perfectly standard
+    if (mode === 'easy') {
+      triggerToast('간편 모드에서는 고정 표준 치수가 사용됩니다.');
+      return;
+    }
     e.preventDefault();
     setActiveHandle({ line, point });
   };
@@ -510,7 +686,6 @@ export default function AdminPage() {
 
       const rect = container.getBoundingClientRect();
       
-      // Get pointer position (mouse or touch)
       let clientX, clientY;
       if (e.touches && e.touches.length > 0) {
         clientX = e.touches[0].clientX;
@@ -520,7 +695,6 @@ export default function AdminPage() {
         clientY = e.clientY;
       }
 
-      // Calculate percentage inside container (clamped 0 to 100)
       const x = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
       const y = Math.max(0, Math.min(100, ((clientY - rect.top) / rect.height) * 100));
 
@@ -559,12 +733,34 @@ export default function AdminPage() {
     };
   }, [activeHandle]);
 
-  // Calculate live dimensions in cm (since W=100cm, H=100cm, 1% distance = 1cm)
+  // Calculate live dimensions in cm
   const getDistance = (line) => {
     const coords = lineHandles[line];
     if (!coords) return 0;
-    const dist = Math.sqrt(Math.pow(coords.x2 - coords.x1, 2) + Math.pow(coords.y2 - coords.y1, 2));
-    return Math.round(dist);
+    
+    if (mode === 'normal') {
+      const dist = Math.sqrt(Math.pow(coords.x2 - coords.x1, 2) + Math.pow(coords.y2 - coords.y1, 2));
+      return Math.round(dist);
+    } else if (mode === 'reference') {
+      if (!pxPerCm) return 0;
+      
+      const isRotated = rotation === 90 || rotation === 270;
+      const imgW = isRotated ? imgDims.height : imgDims.width;
+      const imgH = isRotated ? imgDims.width : imgDims.height;
+      
+      const dx = ((coords.x2 - coords.x1) / 100) * imgW;
+      const dy = ((coords.y2 - coords.y1) / 100) * imgH;
+      const dist_px = Math.sqrt(dx * dx + dy * dy);
+      return Math.round(dist_px / pxPerCm);
+    } else {
+      // easy mode: return standard size from lookup table
+      const detectedCategory = category || '상의';
+      const actualCategory = ['상의', '하의', '아우터'].includes(detectedCategory) ? detectedCategory : '상의';
+      if (KIDS_STANDARD_SIZES[actualCategory]?.[standardSize]) {
+        return KIDS_STANDARD_SIZES[actualCategory][standardSize][line] || 0;
+      }
+      return 0;
+    }
   };
 
   const getMeasurements = () => {
@@ -692,17 +888,110 @@ export default function AdminPage() {
         <div className={styles.progress} style={{ width: `${(step / 3) * 100}%` }}></div>
       </div>
 
-      {/* STEP 1: Upload or Capture */}
+      {/* STEP 1: Mode Selection & Upload */}
       {step === 1 && (
-        <div className="fade-in">
+        <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* Mode Selector Cards */}
+          <div className={styles.modeGrid}>
+            {[
+              {
+                id: 'easy',
+                title: '⚡ 3초 뚝딱! 사이즈 고르기',
+                desc: '내가 입는 옷 사이즈(호수)를 선택하고 사진 1장만 찍어 초스피드로 등록해요.',
+              },
+              {
+                id: 'reference',
+                title: '📏 물건 대고 찰칵! 진짜 크기 재기',
+                desc: '옷 옆에 A4 용지, 카드, 동전, 또는 자를 놓고 함께 찍어서 진짜 치수를 재요.',
+              },
+              {
+                id: 'normal',
+                title: '📦 초록 매트 스캔 (촬영판 전용)',
+                desc: '학교에서 받은 초록색 100cm 크로마키 매트 위에서 정확하게 스캔해요.',
+              }
+            ].map((m) => (
+              <div 
+                key={m.id}
+                className={`${styles.modeCard} ${mode === m.id ? styles.modeCardActive : ''}`}
+                onClick={() => {
+                  setMode(m.id);
+                  setMarkers([]);
+                }}
+              >
+                <div className={styles.modeCardHeader}>
+                  <h3 className={styles.modeCardTitle}>{m.title}</h3>
+                  <div className={`${styles.modeRadio} ${mode === m.id ? styles.modeRadioActive : ''}`} />
+                </div>
+                <p className={styles.modeCardDesc}>{m.desc}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Mode-specific configuration parameters */}
+          {mode === 'easy' && (
+            <div className="glass-panel fade-in" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <span className={styles.formLabel} style={{ fontWeight: 'bold' }}>아동 의류 호수(사이즈) 선택</span>
+              <div className={styles.sizeButtonGroup}>
+                {['120', '130', '140', '150', '160'].map((size) => (
+                  <button
+                    key={size}
+                    type="button"
+                    className={`${styles.sizeButton} ${standardSize === size ? styles.sizeButtonActive : ''}`}
+                    onClick={() => setStandardSize(size)}
+                  >
+                    {size} 호
+                  </button>
+                ))}
+              </div>
+              <p style={{ fontSize: '12px', color: 'var(--muted-foreground)', margin: 0 }}>
+                * 선택한 호수의 대한민국 아동 표준 사이즈가 기본 측정값으로 지정됩니다.
+              </p>
+            </div>
+          )}
+
+          {mode === 'reference' && (
+            <div className="glass-panel fade-in" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <span className={styles.formLabel} style={{ fontWeight: 'bold' }}>옷 옆에 놓은 기준 물체 선택</span>
+              <div className={styles.refGrid}>
+                {[
+                  { id: 'a4', label: '📄 A4 용지', desc: '4개 모서리' },
+                  { id: 'card', label: '💳 신용/교통카드', desc: '4개 모서리' },
+                  { id: 'ruler30', label: '📏 30cm 자', desc: '양 끝 2개 점' },
+                  { id: 'ruler15', label: '📐 15cm 자', desc: '양 끝 2개 점' },
+                  { id: 'coin500', label: '🪙 500원 동전', desc: '지름 2개 점' },
+                  { id: 'coin100', label: '🪙 100원 동전', desc: '지름 2개 점' }
+                ].map((ref) => (
+                  <button
+                    key={ref.id}
+                    type="button"
+                    className={`${styles.refButton} ${referenceType === ref.id ? styles.refButtonActive : ''}`}
+                    onClick={() => {
+                      setReferenceType(ref.id);
+                      setMarkers([]);
+                    }}
+                  >
+                    <span style={{ fontWeight: 'bold', fontSize: '13px' }}>{ref.label}</span>
+                    <span style={{ fontSize: '10px', opacity: 0.7 }}>({ref.desc})</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <label htmlFor="camera-upload">
             <div className={styles.uploadCard}>
               <div className={styles.uploadIcon}>
                 <Camera size={36} />
               </div>
-              <h2 className={styles.uploadTitle}>옷 정면 사진 촬영 또는 선택</h2>
+              <h2 className={styles.uploadTitle}>
+                {mode === 'easy' && '의류 정면 사진 촬영 또는 선택'}
+                {mode === 'reference' && '기준물체가 보이게 정면 사진 촬영'}
+                {mode === 'normal' && '촬영상자 판 중앙 정면 사진 촬영'}
+              </h2>
               <p className={styles.uploadDesc}>
-                모바일에서 터치 시 카메라 앱이 즉시 실행됩니다. 크로마키 초록색 박스 중앙에 옷을 예쁘게 펼쳐서 정면에서 촬영해주세요.
+                {mode === 'easy' && '간편 등록용 옷 전체 정면 사진을 똑바로 찍어주세요.'}
+                {mode === 'reference' && '지정한 기준 물체(A4, 카드, 자, 동전 등)가 겹치지 않게 옷 옆에 놓고 함께 촬영해주세요.'}
+                {mode === 'normal' && '크로마키 매트 중앙에 옷을 올리고 촬영해주세요.'}
               </p>
               <button className="glow-btn" style={{ pointerEvents: 'none' }}>
                 <Upload size={18} /> 사진 촬영하기
@@ -763,20 +1052,21 @@ export default function AdminPage() {
 
           {/* Control parameters */}
           <div className={`glass-panel ${styles.controlCard}`} style={{ padding: '24px', display: 'flex', flexDirection: 'column' }}>
+            {/* Step 1. Background removal */}
             <div className={styles.controlStep}>
               <h3 className={styles.cardSectionTitle}>
                 <Sliders size={16} /> [Step 1. 배경 지우기]
               </h3>
               <div className={styles.optionGrid}>
-                {['green', 'blue', 'none'].map((mode) => (
+                {['green', 'blue', 'none'].map((modeVal) => (
                   <button
-                    key={mode}
-                    className={`${styles.optionButton} ${chromaMode === mode ? styles.optionButtonActive : ''}`}
-                    onClick={() => setChromaMode(mode)}
+                    key={modeVal}
+                    className={`${styles.optionButton} ${chromaMode === modeVal ? styles.optionButtonActive : ''}`}
+                    onClick={() => setChromaMode(modeVal)}
                   >
-                    {mode === 'green' && '초록색 배경'}
-                    {mode === 'blue' && '파란색 배경'}
-                    {mode === 'none' && '지우지 않기'}
+                    {modeVal === 'green' && '초록색 배경'}
+                    {modeVal === 'blue' && '파란색 배경'}
+                    {modeVal === 'none' && '지우지 않기'}
                   </button>
                 ))}
               </div>
@@ -804,6 +1094,7 @@ export default function AdminPage() {
               )}
             </div>
 
+            {/* Step 2. Rotation */}
             <div className={styles.controlStep}>
               <h3 className={styles.cardSectionTitle}>
                 <RotateCw size={16} /> [Step 2. 사진 방향 맞추기]
@@ -820,53 +1111,68 @@ export default function AdminPage() {
               </button>
             </div>
 
-            <div className={styles.controlStep}>
-              <h3 className={styles.cardSectionTitle}>
-                <Maximize2 size={16} /> [Step 3. 실제 크기 측정 기준점 찍기] ({markers.length}/4)
-              </h3>
-              <p style={{ fontSize: '12px', color: '#6B7280', marginTop: '8px', marginBottom: '12px', lineHeight: '1.5' }}>
-                촬영 박스 내의 실제 가로/세로 100cm 꼭짓점 4곳을 깜빡이는 미니맵에 맞게 순서대로 클릭하세요:
-              </p>
-              
-              <div className={styles.markerInfoList}>
-                {markerLabels.map((lbl, idx) => (
-                  <div key={idx} className={`${styles.markerItem} ${markers.length === idx ? styles.markerItemActive : ''}`}>
-                    {renderMinimap(idx)}
-                    <div className={`
-                      ${styles.markerDot} 
-                      ${markers.length === idx ? styles.markerDotActive : ''} 
-                      ${markers.length > idx ? styles.markerDotFilled : ''}
-                    `} />
-                    <span>{lbl}</span>
-                  </div>
-                ))}
-              </div>
+            {/* Step 3. Calibration Markers */}
+            {mode !== 'easy' ? (
+              <div className={styles.controlStep}>
+                <h3 className={styles.cardSectionTitle}>
+                  <Maximize2 size={16} /> [Step 3. 실제 크기 측정 기준점 찍기] ({markers.length}/{getRequiredMarkers()})
+                </h3>
+                <p style={{ fontSize: '12px', color: '#6B7280', marginTop: '8px', marginBottom: '12px', lineHeight: '1.5' }}>
+                  {mode === 'normal' && '촬영 박스 내의 실제 가로/세로 100cm 꼭짓점 4곳을 깜빡이는 미니맵에 맞게 순서대로 클릭하세요:'}
+                  {mode === 'reference' && ['a4', 'card'].includes(referenceType) && `사진 속 [${referenceType === 'a4' ? 'A4 용지' : '카드'}]의 네 귀퉁이 꼭짓점 4곳을 미니맵 순서에 맞춰 터치하세요:`}
+                  {mode === 'reference' && ['ruler30', 'ruler15'].includes(referenceType) && `사진 속 [${referenceType === 'ruler30' ? '30cm 자' : '15cm 자'}]의 눈금 양 끝단 2곳을 차례대로 터치하세요:`}
+                  {mode === 'reference' && ['coin500', 'coin100'].includes(referenceType) && `사진 속 [${referenceType === 'coin500' ? '500원 동전' : '100원 동전'}]의 양끝 지름 단면 2곳을 터치하세요:`}
+                </p>
+                
+                <div className={styles.markerInfoList}>
+                  {getMarkerLabels().map((lbl, idx) => (
+                    <div key={idx} className={`${styles.markerItem} ${markers.length === idx ? styles.markerItemActive : ''}`}>
+                      {renderMinimap(idx)}
+                      <div className={`
+                        ${styles.markerDot} 
+                        ${markers.length === idx ? styles.markerDotActive : ''} 
+                        ${markers.length > idx ? styles.markerDotFilled : ''}
+                      `} />
+                      <span>{lbl}</span>
+                    </div>
+                  ))}
+                </div>
 
-              {markers.length > 0 && (
-                <button 
-                  className="glow-btn-secondary" 
-                  style={{ width: '100%', marginTop: '15px', padding: '10px' }}
-                  onClick={resetMarkers}
-                >
-                  <RotateCcw size={14} /> 모서리 다시 지정
-                </button>
-              )}
-            </div>
+                {markers.length > 0 && (
+                  <button 
+                    className="glow-btn-secondary" 
+                    style={{ width: '100%', marginTop: '15px', padding: '10px' }}
+                    onClick={resetMarkers}
+                  >
+                    <RotateCcw size={14} /> 모서리 다시 지정
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className={styles.controlStep} style={{ background: 'hsl(var(--primary)/0.05)', border: '1px dashed hsl(var(--primary)/0.3)', padding: '16px', borderRadius: 'var(--radius)' }}>
+                <h3 className={styles.cardSectionTitle} style={{ color: 'hsl(var(--primary))', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Info size={16} /> 간편 등록 가이드
+                </h3>
+                <p style={{ fontSize: '12.5px', color: 'var(--muted-foreground)', marginTop: '8px', marginBottom: 0, lineHeight: '1.6' }}>
+                  간편 등록 모드에서는 모서리 보정이 필요 없습니다. AI가 옷 사진을 보고 색상 및 속성을 분석한 뒤, 선택하신 **{standardSize}호**의 아동 표준 치수로 자동 매핑합니다.
+                </p>
+              </div>
+            )}
 
             <div style={{ marginTop: 'auto' }}>
               <button 
                 className={`${styles.ctaButton} glow-btn`}
                 style={{ width: '100%' }}
-                disabled={markers.length < 4 || isLoading}
+                disabled={markers.length < getRequiredMarkers() || isLoading}
                 onClick={handleWarpAndAnalyze}
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="animate-spin" size={20} /> 원근 보정 및 AI 분석 중...
+                    <Loader2 className="animate-spin" size={20} /> AI 치수 분석 및 스캔 중...
                   </>
                 ) : (
                   <>
-                    <Sparkles size={20} /> ✨ AI 치수 분석 및 스캔 완료하기
+                    <Sparkles size={20} /> {mode === 'easy' ? '✨ AI 분석 및 스캔 완료하기' : '✨ AI 치수 분석 및 스캔 완료하기'}
                   </>
                 )}
               </button>

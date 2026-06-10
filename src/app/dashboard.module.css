@@ -1218,4 +1218,95 @@
   }
 }
 
+/* AI Magic Codi Book styles */
+.magicCodiSection {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 2px dashed hsl(var(--primary) / 0.4);
+  border-radius: var(--radius-xl);
+  padding: 30px;
+  box-shadow: 0 12px 40px rgba(16, 185, 129, 0.06);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.magicCodiSection::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, #10b981, #06b6d4, #f59e0b);
+}
+
+.magicCodiHeader {
+  margin-bottom: 25px;
+  border-bottom: 1px dashed hsl(var(--border));
+  padding-bottom: 15px;
+}
+
+.magicComboCard {
+  background: #ffffff !important;
+  border: 2px solid hsl(var(--primary) / 0.12) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.02) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.magicComboCard:hover {
+  transform: translateY(-6px) !important;
+  border-color: hsl(var(--primary) / 0.45) !important;
+  box-shadow: 0 16px 32px rgba(16, 185, 129, 0.12), 0 0 0 1px hsl(var(--primary) / 0.1) !important;
+}
+
+.comboCommentary {
+  background: rgba(16, 185, 129, 0.04) !important;
+  border: 1px solid rgba(16, 185, 129, 0.12) !important;
+  color: hsl(var(--foreground)) !important;
+  border-radius: var(--radius-md) !important;
+  padding: 14px !important;
+  font-size: 13px !important;
+  line-height: 1.55 !important;
+}
+
+.comboTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.comboTag {
+  background: rgba(16, 185, 129, 0.08) !important;
+  color: #047857 !important;
+  font-weight: 700 !important;
+  padding: 3px 8px !important;
+  border-radius: 6px !important;
+  font-size: 11px !important;
+}
+
+.recommendLoading {
+  animation: pulseGlow 2s ease-in-out infinite;
+}
+
+/* Modal Form Styles */
+.formGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.formLabel {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: hsl(var(--foreground));
+}
+
+
 
