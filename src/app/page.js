@@ -386,8 +386,8 @@ export default function DashboardPage() {
       const drawWidth = canvas.width * 0.7 * tryOnScale;
       const drawHeight = drawWidth;
       
-      const centerX = canvas.width / 2 + (tryOnOffset.x / 100) * canvas.width;
-      const centerY = canvas.height / 2 + (tryOnOffset.y / 100) * canvas.height;
+      const centerX = ((50 + tryOnOffset.x) / 100) * canvas.width;
+      const centerY = ((50 + tryOnOffset.y) / 100) * canvas.height;
       
       const x = centerX - drawWidth / 2;
       const y = centerY - drawHeight / 2;
@@ -1348,8 +1348,8 @@ export default function DashboardPage() {
                 <div 
                   className={styles.tryOnClothingOverlay}
                   style={{
-                    top: `calc(50% + ${tryOnOffset.y}%)`,
-                    left: `calc(50% + ${tryOnOffset.x}%)`,
+                    top: `${50 + tryOnOffset.y}%`,
+                    left: `${50 + tryOnOffset.x}%`,
                     transform: `translate(-50%, -50%) scale(${tryOnScale})`,
                     width: '70%',
                     height: '70%'

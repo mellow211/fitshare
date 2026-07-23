@@ -1312,7 +1312,8 @@
 .tryOnContainer {
   position: relative;
   width: 100%;
-  aspect-ratio: 3/4; /* Taller, natural body ratio for mirror try-on */
+  height: 100%;
+  min-height: 50vh;
   background: #000;
   overflow: hidden;
   display: flex;
