@@ -1312,7 +1312,7 @@
 .tryOnContainer {
   position: relative;
   width: 100%;
-  aspect-ratio: 1/1;
+  aspect-ratio: 3/4; /* Taller, natural body ratio for mirror try-on */
   background: #000;
   overflow: hidden;
   display: flex;
@@ -1324,6 +1324,9 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.tryOnVideoMirror {
   transform: scaleX(-1);
 }
 
@@ -1444,6 +1447,22 @@
   flex-direction: column;
   align-items: center;
   gap: 12px;
+}
+
+.modalContentFull {
+  grid-template-columns: 1fr !important;
+  max-width: 500px !important;
+  max-height: 90vh !important;
+  overflow: hidden !important;
+}
+
+@media (max-width: 768px) {
+  .modalContentFull {
+    max-width: 100% !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    border-radius: 0 !important;
+  }
 }
 
 

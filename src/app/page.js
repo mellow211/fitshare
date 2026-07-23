@@ -62,6 +62,8 @@ export default function DashboardPage() {
   const [tryOnScale, setTryOnScale] = useState(1.0);
   const [tryOnOffset, setTryOnOffset] = useState({ x: 0, y: 0 });
   const [isFlashing, setIsFlashing] = useState(false);
+  const [facingMode, setFacingMode] = useState('user'); 
+  const [transparentImageUrl, setTransparentImageUrl] = useState(null);
 
   const videoRef = React.useRef(null);
   const canvasRef = React.useRef(null);
@@ -73,22 +75,25 @@ export default function DashboardPage() {
   const [reserveGrade, setReserveGrade] = useState('');
   const [reservePhone, setReservePhone] = useState('');
 
-  const startCamera = async () => {
+  const startCamera = async (currentFacing = facingMode) => {
     try {
       if (streamRef.current) {
-        stopCamera();
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
       }
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 480, height: 480, facingMode: 'user' },
+        video: { width: 640, height: 640, facingMode: currentFacing },
         audio: false
       });
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        videoRef.current.play().catch(err => {
+          console.warn("Auto-play failed, retrying programmatically:", err);
+        });
       }
       setHasCameraPermission(true);
       setIsTryOnActive(true);
-      // Reset offsets
       setTryOnScale(1.0);
       setTryOnOffset({ x: 0, y: 0 });
     } catch (err) {
@@ -96,6 +101,12 @@ export default function DashboardPage() {
       setHasCameraPermission(false);
       triggerToast("카메라 연결에 실패했습니다. 권한을 확인해주세요.");
     }
+  };
+
+  const toggleFacingMode = () => {
+    const nextMode = facingMode === 'user' ? 'environment' : 'user';
+    setFacingMode(nextMode);
+    startCamera(nextMode);
   };
 
   const stopCamera = () => {
@@ -127,6 +138,50 @@ export default function DashboardPage() {
       });
     }
   }, [isTryOnActive]);
+
+  const processNukki = (imageUrl) => {
+    if (!imageUrl) return;
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+
+      try {
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imgData.data;
+
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i];
+          const g = data[i+1];
+          const b = data[i+2];
+          if (r > 235 && g > 235 && b > 235) {
+            data[i+3] = 0;
+          }
+        }
+        ctx.putImageData(imgData, 0, 0);
+        setTransparentImageUrl(canvas.toDataURL('image/png'));
+      } catch (err) {
+        console.warn("Canvas pixel read error (CORS):", err);
+        setTransparentImageUrl(imageUrl);
+      }
+    };
+    img.onerror = () => {
+      setTransparentImageUrl(imageUrl);
+    };
+    img.src = imageUrl;
+  };
+
+  useEffect(() => {
+    if (selectedCloth) {
+      processNukki(selectedCloth.image_url);
+    } else {
+      setTransparentImageUrl(null);
+    }
+  }, [selectedCloth]);
 
   const loadScript = (src) => {
     return new Promise((resolve, reject) => {
@@ -283,7 +338,7 @@ export default function DashboardPage() {
       link.click();
       triggerToast("📸 피팅 사진이 저장되었습니다!");
     };
-    img.src = selectedCloth.image_url;
+    img.src = transparentImageUrl || selectedCloth.image_url;
   };
 
   const triggerToast = (msg) => {
@@ -1202,7 +1257,7 @@ export default function DashboardPage() {
       {/* DETAIL MODAL: Visual Inspect Panel */}
       {selectedCloth && !isReserveModalOpen && (
         <div className={styles.modalOverlay} onClick={closeDetailModal}>
-          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+          <div className={`${styles.modalContent} ${isTryOnActive ? styles.modalContentFull : ''}`} onClick={(e) => e.stopPropagation()}>
             <button className={styles.closeButton} onClick={closeDetailModal}>
               <X size={16} />
             </button>
@@ -1225,7 +1280,7 @@ export default function DashboardPage() {
                   autoPlay={true}
                   playsInline={true}
                   muted={true}
-                  className={styles.tryOnVideo}
+                  className={`${styles.tryOnVideo} ${facingMode === 'user' ? styles.tryOnVideoMirror : ''}`}
                 />
 
                 <div 
@@ -1239,7 +1294,7 @@ export default function DashboardPage() {
                   }}
                 >
                   <img 
-                    src={selectedCloth.image_url} 
+                    src={transparentImageUrl || selectedCloth.image_url} 
                     alt="tryon-overlay" 
                     className={styles.tryOnClothingImg} 
                   />
@@ -1276,6 +1331,7 @@ export default function DashboardPage() {
                     {isPoseModelLoading ? '⏳' : '🤖'}
                   </button>
 
+                  <button className={styles.tryOnBtn} onClick={toggleFacingMode} title="카메라 전면/후면 전환">🔃</button>
                   <button className={styles.tryOnBtn} onClick={() => { setTryOnScale(1.0); setTryOnOffset({ x: 0, y: 0 }); }} title="초기화">🔄</button>
                   <button className={styles.tryOnBtn} onClick={captureTryOn} title="피팅 캡쳐 촬영" style={{ background: 'hsl(var(--primary))' }}>📸</button>
                   <button className={styles.tryOnBtn} onClick={stopCamera} title="종료" style={{ background: 'hsl(var(--danger))' }}>❌</button>
@@ -1352,7 +1408,8 @@ export default function DashboardPage() {
             )}
 
             {/* Right side: clothing properties + compare sizes */}
-            <div className={styles.modalInfoArea}>
+            {!isTryOnActive && (
+              <div className={styles.modalInfoArea}>
               <span className={styles.modalCategory}>{selectedCloth.style} • {selectedCloth.category}</span>
               <h2 className={styles.modalTitle}>{selectedCloth.name}</h2>
 
@@ -1533,6 +1590,7 @@ export default function DashboardPage() {
                 )}
               </div>
             </div>
+          )}
           </div>
         </div>
       )}
