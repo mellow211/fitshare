@@ -1,0 +1,33 @@
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f8fafc" />
+      <stop offset="100%" stop-color="#f1f5f9" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.15" />
+    </filter>
+  </defs>
+  <!-- Background Studio Surface -->
+  <rect width="100%" height="100%" rx="24" fill="url(#bgGrad)" stroke="#e2e8f0" stroke-width="2" />
+  
+  <!-- Single Isolated Apparel Product Graphic -->
+  <g filter="url(#shadow)">
+    
+        <!-- Pleated Skirt -->
+        <path d="M 140 110 L 260 110 L 310 270 L 90 270 Z" fill="#1e1b4b" stroke="#1e293b" stroke-width="4" />
+        <!-- Waistband -->
+        <rect x="140" y="110" width="120" height="25" fill="#cbd5e1" stroke="#1e293b" stroke-width="3" />
+        <!-- Pleat Lines -->
+        <line x1="130" y1="135" x2="120" y2="270" stroke="#1e293b" stroke-width="2" />
+        <line x1="160" y1="135" x2="160" y2="270" stroke="#1e293b" stroke-width="2" />
+        <line x1="200" y1="135" x2="200" y2="270" stroke="#1e293b" stroke-width="2" />
+        <line x1="240" y1="135" x2="240" y2="270" stroke="#1e293b" stroke-width="2" />
+        <line x1="270" y1="135" x2="280" y2="270" stroke="#1e293b" stroke-width="2" />
+      
+  </g>
+  
+  <!-- Subtle Watermark Tag -->
+  <text x="200" y="380" font-family="'Pretendard', sans-serif" font-size="12" font-weight="700" fill="#94a3b8" text-anchor="middle" letter-spacing="1">FITSHARE • 키즈 [1~2학년용] 클래식 네이</text>
+</svg>

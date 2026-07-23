@@ -1,0 +1,34 @@
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f8fafc" />
+      <stop offset="100%" stop-color="#f1f5f9" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.15" />
+    </filter>
+  </defs>
+  <!-- Background Studio Surface -->
+  <rect width="100%" height="100%" rx="24" fill="url(#bgGrad)" stroke="#e2e8f0" stroke-width="2" />
+  
+  <!-- Single Isolated Apparel Product Graphic -->
+  <g filter="url(#shadow)">
+    
+        <!-- Windbreaker Body -->
+        <path d="M 120 115 Q 200 100 280 115 L 300 330 L 100 330 Z" fill="#f97316" stroke="#1e293b" stroke-width="4" />
+        <!-- Zipper Line -->
+        <line x1="200" y1="110" x2="200" y2="330" stroke="#1e293b" stroke-width="5" />
+        <!-- High Collar / Hood -->
+        <path d="M 140 115 Q 200 85 260 115 L 250 135 Q 200 120 150 135 Z" fill="#1e293b" stroke="#1e293b" stroke-width="3" />
+        <!-- Color Block Chest Patch -->
+        <path d="M 115 170 L 200 200 L 285 170 L 290 220 L 110 220 Z" fill="#1e293b" opacity="0.8" stroke="#1e293b" stroke-width="2" />
+        <!-- Sleeves -->
+        <path d="M 120 115 L 50 240 L 85 255 L 125 170 Z" fill="#f97316" stroke="#1e293b" stroke-width="4" />
+        <path d="M 280 115 L 350 240 L 315 255 L 275 170 Z" fill="#f97316" stroke="#1e293b" stroke-width="4" />
+      
+  </g>
+  
+  <!-- Subtle Watermark Tag -->
+  <text x="200" y="380" font-family="'Pretendard', sans-serif" font-size="12" font-weight="700" fill="#94a3b8" text-anchor="middle" letter-spacing="1">FITSHARE • 키즈 [1~2학년용] 오렌지 안전</text>
+</svg>
