@@ -119,6 +119,12 @@ export default function DashboardPage() {
     setSelectedCloth(null);
   };
 
+  useEffect(() => {
+    if (isTryOnActive && streamRef.current && videoRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+    }
+  }, [isTryOnActive]);
+
   const loadScript = (src) => {
     return new Promise((resolve, reject) => {
       if (document.querySelector(`script[src="${src}"]`)) {
