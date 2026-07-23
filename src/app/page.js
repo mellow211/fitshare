@@ -266,7 +266,11 @@ export default function DashboardPage() {
     img.onerror = () => {
       setTransparentImageUrl(imageUrl);
     };
-    img.src = `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`;
+    if (imageUrl.startsWith('data:')) {
+      img.src = imageUrl;
+    } else {
+      img.src = `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`;
+    }
   };
 
   useEffect(() => {
@@ -330,21 +334,25 @@ export default function DashboardPage() {
 
           if (pose && pose.keypoints) {
             const keypoints = pose.keypoints;
-            const displayW = videoRef.current.clientWidth || 360;
-            const displayH = videoRef.current.clientHeight || 480;
+            const vidW = videoRef.current.videoWidth || videoRef.current.width || 640;
+            const vidH = videoRef.current.videoHeight || videoRef.current.height || 640;
             
             if (selectedCloth.category === '하의') {
               const leftHip = keypoints.find(k => k.part === 'leftHip');
               const rightHip = keypoints.find(k => k.part === 'rightHip');
               
-              if (leftHip && rightHip && leftHip.score > 0.18 && rightHip.score > 0.18) {
+              if (leftHip && rightHip && leftHip.position.x > 5 && rightHip.position.x > 5 && leftHip.score > 0.15 && rightHip.score > 0.15) {
                 const midX = (leftHip.position.x + rightHip.position.x) / 2;
                 const midY = (leftHip.position.y + rightHip.position.y) / 2;
                 const width = Math.abs(leftHip.position.x - rightHip.position.x);
 
-                const percentX = Math.max(-45, Math.min(45, (midX / displayW) * 100 - 50));
-                const percentY = Math.max(-45, Math.min(45, (midY / displayH) * 100 - 45));
-                const scaleFactor = Math.max(0.4, Math.min(2.5, width / (displayW * 0.22)));
+                const normX = midX / vidW;
+                const normY = midY / vidH;
+                const normW = width / vidW;
+
+                const percentX = Math.max(-40, Math.min(40, normX * 100 - 50));
+                const percentY = Math.max(-40, Math.min(40, normY * 100 - 45));
+                const scaleFactor = Math.max(0.4, Math.min(2.2, normW / 0.22));
 
                 setTryOnOffset({ x: percentX, y: percentY });
                 setTryOnScale(scaleFactor);
@@ -353,14 +361,18 @@ export default function DashboardPage() {
               const leftShoulder = keypoints.find(k => k.part === 'leftShoulder');
               const rightShoulder = keypoints.find(k => k.part === 'rightShoulder');
               
-              if (leftShoulder && rightShoulder && leftShoulder.score > 0.18 && rightShoulder.score > 0.18) {
+              if (leftShoulder && rightShoulder && leftShoulder.position.x > 5 && rightShoulder.position.x > 5 && leftShoulder.score > 0.15 && rightShoulder.score > 0.15) {
                 const midX = (leftShoulder.position.x + rightShoulder.position.x) / 2;
                 const midY = (leftShoulder.position.y + rightShoulder.position.y) / 2;
                 const width = Math.abs(leftShoulder.position.x - rightShoulder.position.x);
 
-                const percentX = Math.max(-45, Math.min(45, (midX / displayW) * 100 - 50));
-                const percentY = Math.max(-45, Math.min(45, (midY / displayH) * 100 - 38));
-                const scaleFactor = Math.max(0.4, Math.min(2.5, width / (displayW * 0.25)));
+                const normX = midX / vidW;
+                const normY = midY / vidH;
+                const normW = width / vidW;
+
+                const percentX = Math.max(-40, Math.min(40, normX * 100 - 50));
+                const percentY = Math.max(-40, Math.min(40, normY * 100 - 35));
+                const scaleFactor = Math.max(0.4, Math.min(2.2, normW / 0.25));
 
                 setTryOnOffset({ x: percentX, y: percentY });
                 setTryOnScale(scaleFactor);
@@ -1377,6 +1389,8 @@ export default function DashboardPage() {
                   autoPlay={true}
                   playsInline={true}
                   muted={true}
+                  width={640}
+                  height={640}
                   className={`${styles.tryOnVideo} ${facingMode === 'user' ? styles.tryOnVideoMirror : ''}`}
                   style={{
                     transform: `${facingMode === 'user' ? 'scaleX(-1)' : ''} scale(${cameraZoom})`,
