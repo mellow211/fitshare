@@ -1362,37 +1362,44 @@
 
 .tryOnToolbar {
   position: absolute;
-  bottom: 20px;
+  bottom: 12px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(15, 23, 42, 0.9);
+  background: rgba(15, 23, 42, 0.92);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 28px;
-  padding: 8px 14px;
+  border-radius: 30px;
+  padding: 6px 12px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  max-width: 95%;
+  justify-content: flex-start;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  max-width: 92%;
   gap: 8px;
   z-index: 25;
-  box-shadow: 0 12px 30px rgba(0,0,0,0.5);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.tryOnToolbar::-webkit-scrollbar {
+  display: none;
 }
 
 .tryOnBtn {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   color: #ffffff;
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 18px;
+  font-size: 16px;
   transition: all 0.15s ease;
   user-select: none;
   -webkit-tap-highlight-color: transparent;

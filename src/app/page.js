@@ -218,8 +218,8 @@ export default function DashboardPage() {
           const sat = Math.max(r, g, b) - Math.min(r, g, b);
           const colorDist = Math.abs(r - bgR) + Math.abs(g - bgG) + Math.abs(b - bgB);
 
-          // Background pixel condition: high luminance or close to sampled background color
-          const isBg = (lum > 175 && sat < 35) || (colorDist < 75) || (lum > 210);
+          // Background pixel condition: strictly connected to outer border with background color match
+          const isBg = (colorDist < 60) || (lum > 235 && sat < 25);
 
           if (isBg) {
             data[idx + 3] = 0; // Make transparent
@@ -238,20 +238,6 @@ export default function DashboardPage() {
                   queue.push([nx, ny]);
                 }
               }
-            }
-          }
-        }
-
-        // 3. Final pass: clear any remaining high-luminance low-saturation white specks
-        for (let i = 0; i < data.length; i += 4) {
-          if (data[i + 3] > 0) {
-            const r = data[i];
-            const g = data[i + 1];
-            const b = data[i + 2];
-            const lum = (r + g + b) / 3;
-            const sat = Math.max(r, g, b) - Math.min(r, g, b);
-            if (lum > 225 && sat < 20) {
-              data[i + 3] = 0;
             }
           }
         }
@@ -371,8 +357,8 @@ export default function DashboardPage() {
                 const normW = width / vidW;
 
                 const percentX = Math.max(-40, Math.min(40, normX * 100 - 50));
-                const percentY = Math.max(-40, Math.min(40, normY * 100 - 35));
-                const scaleFactor = Math.max(0.4, Math.min(2.2, normW / 0.25));
+                const percentY = Math.max(-40, Math.min(40, normY * 100 - 28));
+                const scaleFactor = Math.max(0.6, Math.min(2.5, normW / 0.18));
 
                 setTryOnOffset({ x: percentX, y: percentY });
                 setTryOnScale(scaleFactor);
