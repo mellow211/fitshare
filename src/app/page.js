@@ -403,27 +403,53 @@ export default function DashboardPage() {
     }
 
     const video = videoRef.current;
+    const container = video.parentElement;
+    if (!container) return;
+
+    const rect = container.getBoundingClientRect();
     const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth || 480;
-    canvas.height = video.videoHeight || 480;
+    canvas.width = rect.width;
+    canvas.height = rect.height;
     const ctx = canvas.getContext('2d');
 
-    ctx.translate(canvas.width, 0);
-    ctx.scale(-1, 1);
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    // Calculate exact crop matching object-fit: cover on screen
+    const vWidth = video.videoWidth || 640;
+    const vHeight = video.videoHeight || 640;
+    const containerAspect = rect.width / rect.height;
+    const videoAspect = vWidth / vHeight;
+
+    let sx, sy, sw, sh;
+    if (videoAspect > containerAspect) {
+      sh = vHeight;
+      sw = vHeight * containerAspect;
+      sx = (vWidth - sw) / 2;
+      sy = 0;
+    } else {
+      sw = vWidth;
+      sh = vWidth / containerAspect;
+      sx = 0;
+      sy = (vHeight - sh) / 2;
+    }
+
+    ctx.save();
+    if (facingMode === 'user') {
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+    }
+    ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+    ctx.restore();
 
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => {
       const drawWidth = canvas.width * 0.7 * tryOnScale;
       const drawHeight = drawWidth;
-      
-      const centerX = ((50 + tryOnOffset.x) / 100) * canvas.width;
-      const centerY = ((50 + tryOnOffset.y) / 100) * canvas.height;
-      
-      const x = centerX - drawWidth / 2;
-      const y = centerY - drawHeight / 2;
+
+      const overlayLeft = ((50 + tryOnOffset.x) / 100) * canvas.width;
+      const overlayTop = ((50 + tryOnOffset.y) / 100) * canvas.height;
+
+      const x = overlayLeft - drawWidth / 2;
+      const y = overlayTop - drawHeight / 2;
 
       ctx.drawImage(img, x, y, drawWidth, drawHeight);
 
@@ -431,7 +457,7 @@ export default function DashboardPage() {
       link.download = `fitshare_tryon_${selectedCloth.name.replace(/\s+/g, '_')}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
-      triggerToast("📸 피팅 사진이 저장되었습니다!");
+      triggerToast("📸 피팅 사진이 성공적으로 저장되었습니다!");
     };
     img.src = transparentImageUrl || selectedCloth.image_url;
   };
