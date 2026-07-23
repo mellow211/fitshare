@@ -38,8 +38,11 @@ function getOriginalPath(prefix) {
   return match ? path.join(ARTIFACTS_DIR, match) : null;
 }
 
-// 1. 기존 13종 고정 원본 데이터셋
+// 1~2학년(Height 115, Weight 22 -> shoulder:31, chest:40, waist:23, length:67)
+// 3~4학년(Height 130, Weight 30 -> shoulder:35, chest:46, waist:29, length:75)
+// 5~6학년(Height 148, Weight 42 -> shoulder:40, chest:52, waist:37, length:86)
 const ORIGINAL_13 = [
+  // --- 1~2학년 (저학년용) ---
   {
     prefix: 'kids_grade1_gym_top_red',
     filename: 'kids_grade1_gym_top_red.png',
@@ -47,7 +50,7 @@ const ORIGINAL_13 = [
     category: '상의',
     color: '레드',
     style: '체육복',
-    measurements: { shoulder: 32, chest: 35, sleeve: 41, length: 47 },
+    measurements: { shoulder: 32, chest: 41, sleeve: 41, length: 47 },
     guidelines: { shoulder_y: 20, chest_y: 35, sleeve_start_x: 25, sleeve_end_x: 10, length_start_y: 20, length_end_y: 90 }
   },
   {
@@ -57,7 +60,7 @@ const ORIGINAL_13 = [
     category: '상의',
     color: '화이트',
     style: '교복',
-    measurements: { shoulder: 31, chest: 34, sleeve: 16, length: 45 },
+    measurements: { shoulder: 32, chest: 41, sleeve: 16, length: 45 },
     guidelines: { shoulder_y: 19, chest_y: 34, sleeve_start_x: 26, sleeve_end_x: 14, length_start_y: 19, length_end_y: 86 }
   },
   {
@@ -67,7 +70,7 @@ const ORIGINAL_13 = [
     category: '상의',
     color: '옐로우',
     style: '일상복',
-    measurements: { shoulder: 33, chest: 36, sleeve: 42, length: 48 },
+    measurements: { shoulder: 32, chest: 42, sleeve: 42, length: 48 },
     guidelines: { shoulder_y: 22, chest_y: 37, sleeve_start_x: 23, sleeve_end_x: 9, length_start_y: 22, length_end_y: 89 }
   },
   {
@@ -77,7 +80,7 @@ const ORIGINAL_13 = [
     category: '하의',
     color: '네이비',
     style: '체육복',
-    measurements: { waist: 23, length: 32 },
+    measurements: { waist: 24, length: 68 },
     guidelines: { waist_y: 15, length_start_y: 15, length_end_y: 50 }
   },
   {
@@ -87,7 +90,7 @@ const ORIGINAL_13 = [
     category: '하의',
     color: '네이비',
     style: '교복',
-    measurements: { waist: 23, length: 33 },
+    measurements: { waist: 24, length: 68 },
     guidelines: { waist_y: 15, length_start_y: 15, length_end_y: 55 }
   },
   {
@@ -97,9 +100,11 @@ const ORIGINAL_13 = [
     category: '아우터',
     color: '네이비',
     style: '등교룩',
-    measurements: { shoulder: 32, chest: 36, sleeve: 41, length: 46 },
+    measurements: { shoulder: 32, chest: 42, sleeve: 41, length: 46 },
     guidelines: { shoulder_y: 20, chest_y: 35, sleeve_start_x: 26, sleeve_end_x: 12, length_start_y: 20, length_end_y: 87 }
   },
+
+  // --- 3~4학년 (중학년용) ---
   {
     prefix: 'kids_gym_top_navy',
     filename: 'kids_gym_top_navy.png',
@@ -107,7 +112,7 @@ const ORIGINAL_13 = [
     category: '상의',
     color: '네이비',
     style: '체육복',
-    measurements: { shoulder: 36, chest: 41, sleeve: 47, length: 55 },
+    measurements: { shoulder: 36, chest: 47, sleeve: 47, length: 55 },
     guidelines: { shoulder_y: 20, chest_y: 35, sleeve_start_x: 25, sleeve_end_x: 10, length_start_y: 20, length_end_y: 90 }
   },
   {
@@ -117,7 +122,7 @@ const ORIGINAL_13 = [
     category: '상의',
     color: '핑크',
     style: '일상복',
-    measurements: { shoulder: 37, chest: 43, sleeve: 47, length: 55 },
+    measurements: { shoulder: 36, chest: 48, sleeve: 47, length: 55 },
     guidelines: { shoulder_y: 21, chest_y: 36, sleeve_start_x: 24, sleeve_end_x: 10, length_start_y: 21, length_end_y: 88 }
   },
   {
@@ -127,7 +132,7 @@ const ORIGINAL_13 = [
     category: '하의',
     color: '카키',
     style: '일상복',
-    measurements: { waist: 26, length: 39 },
+    measurements: { waist: 30, length: 76 },
     guidelines: { waist_y: 15, length_start_y: 15, length_end_y: 52 }
   },
   {
@@ -137,9 +142,11 @@ const ORIGINAL_13 = [
     category: '아우터',
     color: '그린',
     style: '체육복',
-    measurements: { shoulder: 36, chest: 43, sleeve: 47, length: 55 },
+    measurements: { shoulder: 36, chest: 48, sleeve: 47, length: 55 },
     guidelines: { shoulder_y: 20, chest_y: 36, sleeve_start_x: 25, sleeve_end_x: 10, length_start_y: 20, length_end_y: 88 }
   },
+
+  // --- 5~6학년 (고학년용) ---
   {
     prefix: 'kids_gray_joggers',
     filename: 'kids_gray_joggers.png',
@@ -147,7 +154,7 @@ const ORIGINAL_13 = [
     category: '하의',
     color: '그레이',
     style: '체육복',
-    measurements: { waist: 29, length: 85 },
+    measurements: { waist: 38, length: 87 },
     guidelines: { waist_y: 15, length_start_y: 15, length_end_y: 94 }
   },
   {
@@ -157,7 +164,7 @@ const ORIGINAL_13 = [
     category: '하의',
     color: '블루',
     style: '일상복',
-    measurements: { waist: 29, length: 87 },
+    measurements: { waist: 38, length: 87 },
     guidelines: { waist_y: 15, length_start_y: 15, length_end_y: 95 }
   },
   {
@@ -167,7 +174,7 @@ const ORIGINAL_13 = [
     category: '아우터',
     color: '다크그레이',
     style: '교복',
-    measurements: { shoulder: 41, chest: 47, sleeve: 53, length: 63 },
+    measurements: { shoulder: 41, chest: 54, sleeve: 53, length: 63 },
     guidelines: { shoulder_y: 21, chest_y: 37, sleeve_start_x: 27, sleeve_end_x: 11, length_start_y: 21, length_end_y: 87 }
   }
 ];
@@ -176,7 +183,7 @@ async function run() {
   console.log("🧹 Clearing all data from Supabase 'clothes' table...");
   await supabase.from('clothes').delete().neq('id', '00000000-0000-0000-0000-000000000000');
 
-  console.log("📸 Registering ONLY the Approved 13 Fixed Original items...");
+  console.log("📸 Registering ONLY the Approved 13 Fixed Original items with adjusted measurements...");
 
   let count = 0;
   for (const item of ORIGINAL_13) {
@@ -211,7 +218,7 @@ async function run() {
     if (error) {
       console.error(`❌ Insert error for ${item.name}:`, error.message);
     } else {
-      console.log(`✅ [${item.name}] (${item.color}) - Approved Original Registered & Copied!`);
+      console.log(`✅ [${item.name}] (${item.color}) - Approved Original Registered & Copied with Standard Kid Sizing!`);
       count++;
     }
   }
