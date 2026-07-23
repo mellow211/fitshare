@@ -64,6 +64,7 @@ export default function DashboardPage() {
   const [isFlashing, setIsFlashing] = useState(false);
   const [facingMode, setFacingMode] = useState('user'); 
   const [transparentImageUrl, setTransparentImageUrl] = useState(null);
+  const [cameraStream, setCameraStream] = useState(null);
 
   const videoRef = React.useRef(null);
   const canvasRef = React.useRef(null);
@@ -86,6 +87,7 @@ export default function DashboardPage() {
         audio: false
       });
       streamRef.current = stream;
+      setCameraStream(stream);
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         videoRef.current.play().catch(err => {
@@ -104,6 +106,12 @@ export default function DashboardPage() {
   };
 
   const toggleFacingMode = () => {
+    if (poseDetectionLoopRef.current) {
+      cancelAnimationFrame(poseDetectionLoopRef.current);
+      poseDetectionLoopRef.current = null;
+    }
+    setIsPoseTrackingActive(false);
+
     const nextMode = facingMode === 'user' ? 'environment' : 'user';
     setFacingMode(nextMode);
     startCamera(nextMode);
@@ -118,6 +126,7 @@ export default function DashboardPage() {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
+    setCameraStream(null);
     if (videoRef.current) {
       videoRef.current.srcObject = null;
     }
@@ -131,13 +140,13 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    if (isTryOnActive && streamRef.current && videoRef.current) {
-      videoRef.current.srcObject = streamRef.current;
+    if (isTryOnActive && cameraStream && videoRef.current) {
+      videoRef.current.srcObject = cameraStream;
       videoRef.current.play().catch(err => {
         console.warn("Auto-play blocked, retrying programmatically:", err);
       });
     }
-  }, [isTryOnActive]);
+  }, [isTryOnActive, cameraStream]);
 
   const processNukki = (imageUrl) => {
     if (!imageUrl) return;
@@ -153,15 +162,64 @@ export default function DashboardPage() {
       try {
         const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const data = imgData.data;
+        const width = canvas.width;
+        const height = canvas.height;
 
+        // BFS/DFS from all border pixels
+        const queue = [];
+        const visited = new Uint8Array(width * height);
+
+        for (let x = 0; x < width; x++) {
+          queue.push([x, 0]);
+          queue.push([x, height - 1]);
+          visited[0 * width + x] = 1;
+          visited[(height - 1) * width + x] = 1;
+        }
+        for (let y = 1; y < height - 1; y++) {
+          queue.push([0, y]);
+          queue.push([width - 1, y]);
+          visited[y * width + 0] = 1;
+          visited[y * width + (width - 1)] = 1;
+        }
+
+        let head = 0;
+        while (head < queue.length) {
+          const [cx, cy] = queue[head++];
+          const idx = (cy * width + cx) * 4;
+          const r = data[idx];
+          const g = data[idx+1];
+          const b = data[idx+2];
+          const a = data[idx+3];
+
+          // If background pixel is light grey/white or near starting colors
+          if (a > 0 && r > 210 && g > 210 && b > 210) {
+            data[idx+3] = 0; // Clear background
+
+            const neighbors = [
+              [cx + 1, cy],
+              [cx - 1, cy],
+              [cx, cy + 1],
+              [cx, cy - 1]
+            ];
+            for (const [nx, ny] of neighbors) {
+              if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                const nidx = ny * width + nx;
+                if (!visited[nidx]) {
+                  visited[nidx] = 1;
+                  queue.push([nx, ny]);
+                }
+              }
+            }
+          }
+        }
+
+        // Clean up remaining pure white specks
         for (let i = 0; i < data.length; i += 4) {
-          const r = data[i];
-          const g = data[i+1];
-          const b = data[i+2];
-          if (r > 235 && g > 235 && b > 235) {
+          if (data[i+3] > 0 && data[i] > 245 && data[i+1] > 245 && data[i+2] > 245) {
             data[i+3] = 0;
           }
         }
+
         ctx.putImageData(imgData, 0, 0);
         setTransparentImageUrl(canvas.toDataURL('image/png'));
       } catch (err) {
@@ -172,7 +230,8 @@ export default function DashboardPage() {
     img.onerror = () => {
       setTransparentImageUrl(imageUrl);
     };
-    img.src = imageUrl;
+    // Fetch image through API proxy to bypass Supabase CORS blocks
+    img.src = `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`;
   };
 
   useEffect(() => {
@@ -211,6 +270,7 @@ export default function DashboardPage() {
     try {
       await loadScript('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs');
       await loadScript('https://cdn.jsdelivr.net/npm/@tensorflow-models/posenet');
+      await new Promise(r => setTimeout(r, 100)); // Ensure script globals register
       
       const net = await window.posenet.load({
         architecture: 'MobileNetV1',
@@ -230,11 +290,13 @@ export default function DashboardPage() {
 
         try {
           const pose = await net.estimateSinglePose(videoRef.current, {
-            flipHorizontal: true
+            flipHorizontal: facingMode === 'user'
           });
 
           if (pose && pose.keypoints) {
             const keypoints = pose.keypoints;
+            const videoW = videoRef.current.videoWidth || 640;
+            const videoH = videoRef.current.videoHeight || 640;
             
             if (selectedCloth.category === '하의') {
               const leftHip = keypoints.find(k => k.part === 'leftHip');
@@ -245,9 +307,9 @@ export default function DashboardPage() {
                 const midY = (leftHip.position.y + rightHip.position.y) / 2;
                 const width = Math.abs(leftHip.position.x - rightHip.position.x);
 
-                const percentX = (midX / 480) * 100 - 50;
-                const percentY = (midY / 480) * 100 - 45;
-                const scaleFactor = (width / 115);
+                const percentX = (midX / videoW) * 100 - 50;
+                const percentY = (midY / videoH) * 100 - 45;
+                const scaleFactor = (width / (videoW * 0.22)); // Adjust base scale dynamically
 
                 setTryOnOffset({ x: percentX, y: percentY });
                 setTryOnScale(scaleFactor);
@@ -261,9 +323,9 @@ export default function DashboardPage() {
                 const midY = (leftShoulder.position.y + rightShoulder.position.y) / 2;
                 const width = Math.abs(leftShoulder.position.x - rightShoulder.position.x);
 
-                const percentX = (midX / 480) * 100 - 50;
-                const percentY = (midY / 480) * 100 - 40;
-                const scaleFactor = (width / 135);
+                const percentX = (midX / videoW) * 100 - 50;
+                const percentY = (midY / videoH) * 100 - 40;
+                const scaleFactor = (width / (videoW * 0.25)); // Adjust base scale dynamically
 
                 setTryOnOffset({ x: percentX, y: percentY });
                 setTryOnScale(scaleFactor);
