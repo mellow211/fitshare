@@ -54,10 +54,228 @@ export default function DashboardPage() {
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
   const [isReserveModalOpen, setIsReserveModalOpen] = useState(false);
 
+  // Try-On States & Refs
+  const [isTryOnActive, setIsTryOnActive] = useState(false);
+  const [hasCameraPermission, setHasCameraPermission] = useState(null);
+  const [isPoseTrackingActive, setIsPoseTrackingActive] = useState(false);
+  const [isPoseModelLoading, setIsPoseModelLoading] = useState(false);
+  const [tryOnScale, setTryOnScale] = useState(1.0);
+  const [tryOnOffset, setTryOnOffset] = useState({ x: 0, y: 0 });
+  const [isFlashing, setIsFlashing] = useState(false);
+
+  const videoRef = React.useRef(null);
+  const canvasRef = React.useRef(null);
+  const streamRef = React.useRef(null);
+  const poseDetectionLoopRef = React.useRef(null);
+
   // Reservation Info
   const [reserveName, setReserveName] = useState('');
   const [reserveGrade, setReserveGrade] = useState('');
   const [reservePhone, setReservePhone] = useState('');
+
+  const startCamera = async () => {
+    try {
+      if (streamRef.current) {
+        stopCamera();
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: 480, height: 480, facingMode: 'user' },
+        audio: false
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+      setHasCameraPermission(true);
+      setIsTryOnActive(true);
+      // Reset offsets
+      setTryOnScale(1.0);
+      setTryOnOffset({ x: 0, y: 0 });
+    } catch (err) {
+      console.error("Camera stream access failed:", err);
+      setHasCameraPermission(false);
+      triggerToast("카메라 연결에 실패했습니다. 권한을 확인해주세요.");
+    }
+  };
+
+  const stopCamera = () => {
+    if (poseDetectionLoopRef.current) {
+      cancelAnimationFrame(poseDetectionLoopRef.current);
+      poseDetectionLoopRef.current = null;
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setIsTryOnActive(false);
+    setIsPoseTrackingActive(false);
+  };
+
+  const closeDetailModal = () => {
+    stopCamera();
+    setSelectedCloth(null);
+  };
+
+  const loadScript = (src) => {
+    return new Promise((resolve, reject) => {
+      if (document.querySelector(`script[src="${src}"]`)) {
+        resolve();
+        return;
+      }
+      const s = document.createElement('script');
+      s.src = src;
+      s.onload = resolve;
+      s.onerror = reject;
+      document.body.appendChild(s);
+    });
+  };
+
+  const startPoseTracking = async () => {
+    if (isPoseTrackingActive) {
+      setIsPoseTrackingActive(false);
+      if (poseDetectionLoopRef.current) {
+        cancelAnimationFrame(poseDetectionLoopRef.current);
+        poseDetectionLoopRef.current = null;
+      }
+      return;
+    }
+
+    setIsPoseModelLoading(true);
+    try {
+      await loadScript('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs');
+      await loadScript('https://cdn.jsdelivr.net/npm/@tensorflow-models/posenet');
+      
+      const net = await window.posenet.load({
+        architecture: 'MobileNetV1',
+        outputStride: 16,
+        inputResolution: { width: 257, height: 257 },
+        multiplier: 0.5
+      });
+      
+      setIsPoseModelLoading(false);
+      setIsPoseTrackingActive(true);
+      
+      const detectPose = async () => {
+        if (!videoRef.current || videoRef.current.readyState < 2) {
+          poseDetectionLoopRef.current = requestAnimationFrame(detectPose);
+          return;
+        }
+
+        try {
+          const pose = await net.estimateSinglePose(videoRef.current, {
+            flipHorizontal: true
+          });
+
+          if (pose && pose.keypoints) {
+            const keypoints = pose.keypoints;
+            
+            if (selectedCloth.category === '하의') {
+              const leftHip = keypoints.find(k => k.part === 'leftHip');
+              const rightHip = keypoints.find(k => k.part === 'rightHip');
+              
+              if (leftHip && rightHip && leftHip.score > 0.4 && rightHip.score > 0.4) {
+                const midX = (leftHip.position.x + rightHip.position.x) / 2;
+                const midY = (leftHip.position.y + rightHip.position.y) / 2;
+                const width = Math.abs(leftHip.position.x - rightHip.position.x);
+
+                const percentX = (midX / 480) * 100 - 50;
+                const percentY = (midY / 480) * 100 - 45;
+                const scaleFactor = (width / 115);
+
+                setTryOnOffset({ x: percentX, y: percentY });
+                setTryOnScale(scaleFactor);
+              }
+            } else {
+              const leftShoulder = keypoints.find(k => k.part === 'leftShoulder');
+              const rightShoulder = keypoints.find(k => k.part === 'rightShoulder');
+              
+              if (leftShoulder && rightShoulder && leftShoulder.score > 0.4 && rightShoulder.score > 0.4) {
+                const midX = (leftShoulder.position.x + rightShoulder.position.x) / 2;
+                const midY = (leftShoulder.position.y + rightShoulder.position.y) / 2;
+                const width = Math.abs(leftShoulder.position.x - rightShoulder.position.x);
+
+                const percentX = (midX / 480) * 100 - 50;
+                const percentY = (midY / 480) * 100 - 40;
+                const scaleFactor = (width / 135);
+
+                setTryOnOffset({ x: percentX, y: percentY });
+                setTryOnScale(scaleFactor);
+              }
+            }
+          }
+        } catch (e) {
+          console.error("Pose tracking frame estimation failed:", e);
+        }
+
+        poseDetectionLoopRef.current = requestAnimationFrame(detectPose);
+      };
+
+      detectPose();
+    } catch (err) {
+      console.error("Failed to load PoseNet model:", err);
+      setIsPoseModelLoading(false);
+      triggerToast("AI 모델 초기화 실패. 수동 조절 모드를 이용해주세요.");
+    }
+  };
+
+  const captureTryOn = () => {
+    if (!videoRef.current || !selectedCloth) return;
+
+    setIsFlashing(true);
+    setTimeout(() => setIsFlashing(false), 500);
+
+    try {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.15);
+    } catch (e) {
+      console.warn("Audio Context beep error:", e);
+    }
+
+    const video = videoRef.current;
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth || 480;
+    canvas.height = video.videoHeight || 480;
+    const ctx = canvas.getContext('2d');
+
+    ctx.translate(canvas.width, 0);
+    ctx.scale(-1, 1);
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const drawWidth = canvas.width * 0.7 * tryOnScale;
+      const drawHeight = drawWidth;
+      
+      const centerX = canvas.width / 2 + (tryOnOffset.x / 100) * canvas.width;
+      const centerY = canvas.height / 2 + (tryOnOffset.y / 100) * canvas.height;
+      
+      const x = centerX - drawWidth / 2;
+      const y = centerY - drawHeight / 2;
+
+      ctx.drawImage(img, x, y, drawWidth, drawHeight);
+
+      const link = document.createElement('a');
+      link.download = `fitshare_tryon_${selectedCloth.name.replace(/\s+/g, '_')}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      triggerToast("📸 피팅 사진이 저장되었습니다!");
+    };
+    img.src = selectedCloth.image_url;
+  };
 
   const triggerToast = (msg) => {
     setToastMessage(msg);
@@ -974,89 +1192,154 @@ export default function DashboardPage() {
 
       {/* DETAIL MODAL: Visual Inspect Panel */}
       {selectedCloth && !isReserveModalOpen && (
-        <div className={styles.modalOverlay} onClick={() => setSelectedCloth(null)}>
+        <div className={styles.modalOverlay} onClick={closeDetailModal}>
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-            <button className={styles.closeButton} onClick={() => setSelectedCloth(null)}>
+            <button className={styles.closeButton} onClick={closeDetailModal}>
               <X size={16} />
             </button>
 
-            {/* Left side: Canvas overlay with glowing lines */}
-            <div className={`${styles.modalImageArea} scanning-container`} style={{ overflow: 'hidden', position: 'relative', borderRight: '1px solid hsl(var(--border))' }}>
-              {/* Technical scanning brackets overlay */}
-              <div className="scanning-bracket scanning-bracket-tl" />
-              <div className="scanning-bracket scanning-bracket-tr" />
-              <div className="scanning-bracket scanning-bracket-bl" />
-              <div className="scanning-bracket scanning-bracket-br" />
-              
-              {/* Scanning status banner */}
-              <div style={{ position: 'absolute', top: '24px', left: '50%', transform: 'translateX(-50%)', background: 'rgba(5,150,105,0.85)', color: '#fff', fontSize: '11px', fontWeight: '800', padding: '4px 12px', borderRadius: '4px', zIndex: 10, display: 'flex', alignItems: 'center', gap: '4px', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.2)' }}>
-                <Sparkles size={12} /> AI 실측 치수 오버레이 활성
-              </div>
+            {/* Left side: Canvas overlay with glowing lines OR Camera Virtual Try-on */}
+            {isTryOnActive ? (
+              <div className={styles.tryOnContainer}>
+                {/* Flash layer */}
+                <div className={`${styles.tryOnFlash} ${isFlashing ? styles.tryOnFlashActive : ''}`} />
 
-              <img src={selectedCloth.image_url} alt={selectedCloth.name} className={styles.modalImage} />
-              
-              {/* Measurement lines SVG overlay */}
-              <svg 
-                width="100%" height="100%" viewBox="0 0 100 100" 
-                style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}
-              >
-                {selectedCloth.category === '하의' ? (
-                  <>
-                    {/* Waist Line */}
-                    <line 
-                      x1={50 - selectedCloth.measurements.waist / 2} y1={selectedCloth.guidelines.waist_y} 
-                      x2={50 + selectedCloth.measurements.waist / 2} y2={selectedCloth.guidelines.waist_y}
-                      stroke="hsl(var(--neon-chest))" 
-                      strokeWidth={hoveredSpec === 'waist' ? '3.5' : '2'}
-                      style={{ filter: hoveredSpec === 'waist' ? 'drop-shadow(0 0 6px hsl(var(--neon-chest)))' : 'none', transition: 'all 0.2s ease' }}
-                    />
-                    {/* Length Line */}
-                    <line 
-                      x1={50} y1={selectedCloth.guidelines.length_start_y} 
-                      x2={50} y2={selectedCloth.guidelines.length_end_y}
-                      stroke="hsl(var(--neon-length))" 
-                      strokeWidth={hoveredSpec === 'length' ? '3.5' : '2'}
-                      style={{ filter: hoveredSpec === 'length' ? 'drop-shadow(0 0 6px hsl(var(--neon-length)))' : 'none', transition: 'all 0.2s ease' }}
-                    />
-                  </>
-                ) : (
-                  <>
-                    {/* Shoulder Line */}
-                    <line 
-                      x1={50 - selectedCloth.measurements.shoulder / 2} y1={selectedCloth.guidelines.shoulder_y} 
-                      x2={50 + selectedCloth.measurements.shoulder / 2} y2={selectedCloth.guidelines.shoulder_y}
-                      stroke="hsl(var(--neon-shoulder))" 
-                      strokeWidth={hoveredSpec === 'shoulder' ? '3.5' : '2'}
-                      style={{ filter: hoveredSpec === 'shoulder' ? 'drop-shadow(0 0 6px hsl(var(--neon-shoulder)))' : 'none', transition: 'all 0.2s ease' }}
-                    />
-                    {/* Chest Line */}
-                    <line 
-                      x1={50 - selectedCloth.measurements.chest / 2} y1={selectedCloth.guidelines.chest_y} 
-                      x2={50 + selectedCloth.measurements.chest / 2} y2={selectedCloth.guidelines.chest_y}
-                      stroke="hsl(var(--neon-chest))" 
-                      strokeWidth={hoveredSpec === 'chest' ? '3.5' : '2'}
-                      style={{ filter: hoveredSpec === 'chest' ? 'drop-shadow(0 0 6px hsl(var(--neon-chest)))' : 'none', transition: 'all 0.2s ease' }}
-                    />
-                    {/* Sleeve Line */}
-                    <line 
-                      x1={50 - selectedCloth.measurements.shoulder / 2} y1={selectedCloth.guidelines.shoulder_y} 
-                      x2={selectedCloth.guidelines.sleeve_end_x} y2={48}
-                      stroke="hsl(var(--neon-sleeve))" 
-                      strokeWidth={hoveredSpec === 'sleeve' ? '3.5' : '2'}
-                      style={{ filter: hoveredSpec === 'sleeve' ? 'drop-shadow(0 0 6px hsl(var(--neon-sleeve)))' : 'none', transition: 'all 0.2s ease' }}
-                    />
-                    {/* Length Line */}
-                    <line 
-                      x1={50} y1={selectedCloth.guidelines.length_start_y} 
-                      x2={50} y2={selectedCloth.guidelines.length_end_y}
-                      stroke="hsl(var(--neon-length))" 
-                      strokeWidth={hoveredSpec === 'length' ? '3.5' : '2'}
-                      style={{ filter: hoveredSpec === 'length' ? 'drop-shadow(0 0 6px hsl(var(--neon-length)))' : 'none', transition: 'all 0.2s ease' }}
-                    />
-                  </>
+                {/* AI tracking status badge */}
+                {isPoseTrackingActive && (
+                  <div className={styles.tryOnAiBadge}>
+                    <Sparkles size={12} /> AI 실시간 골반/어깨 매칭 중
+                  </div>
                 )}
-              </svg>
-            </div>
+
+                <video 
+                  ref={videoRef} 
+                  autoPlay 
+                  playsInline 
+                  className={styles.tryOnVideo}
+                />
+
+                <div 
+                  className={styles.tryOnClothingOverlay}
+                  style={{
+                    top: `calc(50% + ${tryOnOffset.y}%)`,
+                    left: `calc(50% + ${tryOnOffset.x}%)`,
+                    transform: `translate(-50%, -50%) scale(${tryOnScale})`,
+                    width: '70%',
+                    height: '70%'
+                  }}
+                >
+                  <img 
+                    src={selectedCloth.image_url} 
+                    alt="tryon-overlay" 
+                    className={styles.tryOnClothingImg} 
+                  />
+                </div>
+
+                {/* Standing reference guides */}
+                {!isPoseTrackingActive && (
+                  <div className={styles.tryOnSilhouette}>
+                    <svg width="60%" height="80%" viewBox="0 0 100 100" fill="none" stroke="hsl(var(--primary)/0.4)" strokeWidth="1.5">
+                      {selectedCloth.category === '하의' ? (
+                        <path d="M30 40 L70 40 L75 85 L60 85 L50 65 L40 85 L25 85 Z" strokeDasharray="3 3" />
+                      ) : (
+                        <path d="M50 15 C45 15, 45 25, 50 25 C55 25, 55 15, 50 15 M 25 35 L75 35 L70 80 L30 80 Z" strokeDasharray="3 3" />
+                      )}
+                    </svg>
+                  </div>
+                )}
+
+                <div className={styles.tryOnToolbar}>
+                  <button className={styles.tryOnBtn} onClick={() => setTryOnOffset(prev => ({ ...prev, y: prev.y - 3 }))} title="위로">⬆️</button>
+                  <button className={styles.tryOnBtn} onClick={() => setTryOnOffset(prev => ({ ...prev, y: prev.y + 3 }))} title="아래로">⬇️</button>
+                  <button className={styles.tryOnBtn} onClick={() => setTryOnOffset(prev => ({ ...prev, x: prev.x - 3 }))} title="왼쪽으로">⬅️</button>
+                  <button className={styles.tryOnBtn} onClick={() => setTryOnOffset(prev => ({ ...prev, x: prev.x + 3 }))} title="오른쪽으로">➡️</button>
+
+                  <button className={styles.tryOnBtn} onClick={() => setTryOnScale(s => Math.min(2.5, s + 0.1))} title="크게">➕</button>
+                  <button className={styles.tryOnBtn} onClick={() => setTryOnScale(s => Math.max(0.4, s - 0.1))} title="작게">➖</button>
+
+                  <button 
+                    className={`${styles.tryOnBtn} ${isPoseTrackingActive ? styles.tryOnBtnActive : ''}`} 
+                    onClick={startPoseTracking} 
+                    title={isPoseModelLoading ? "AI 모델 로딩 중..." : "AI 실시간 자동 피팅"}
+                    disabled={isPoseModelLoading}
+                  >
+                    {isPoseModelLoading ? '⏳' : '🤖'}
+                  </button>
+
+                  <button className={styles.tryOnBtn} onClick={() => { setTryOnScale(1.0); setTryOnOffset({ x: 0, y: 0 }); }} title="초기화">🔄</button>
+                  <button className={styles.tryOnBtn} onClick={captureTryOn} title="피팅 캡쳐 촬영" style={{ background: 'hsl(var(--primary))' }}>📸</button>
+                  <button className={styles.tryOnBtn} onClick={stopCamera} title="종료" style={{ background: 'hsl(var(--danger))' }}>❌</button>
+                </div>
+              </div>
+            ) : (
+              <div className={`${styles.modalImageArea} scanning-container`} style={{ overflow: 'hidden', position: 'relative', borderRight: '1px solid hsl(var(--border))' }}>
+                <div className="scanning-bracket scanning-bracket-tl" />
+                <div className="scanning-bracket scanning-bracket-tr" />
+                <div className="scanning-bracket scanning-bracket-bl" />
+                <div className="scanning-bracket scanning-bracket-br" />
+                
+                <div style={{ position: 'absolute', top: '24px', left: '50%', transform: 'translateX(-50%)', background: 'rgba(5,150,105,0.85)', color: '#fff', fontSize: '11px', fontWeight: '800', padding: '4px 12px', borderRadius: '4px', zIndex: 10, display: 'flex', alignItems: 'center', gap: '4px', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.2)' }}>
+                  <Sparkles size={12} /> AI 실측 치수 오버레이 활성
+                </div>
+
+                <img src={selectedCloth.image_url} alt={selectedCloth.name} className={styles.modalImage} />
+                
+                <svg 
+                  width="100%" height="100%" viewBox="0 0 100 100" 
+                  style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}
+                >
+                  {selectedCloth.category === '하의' ? (
+                    <>
+                      <line 
+                        x1={50 - selectedCloth.measurements.waist / 2} y1={selectedCloth.guidelines.waist_y} 
+                        x2={50 + selectedCloth.measurements.waist / 2} y2={selectedCloth.guidelines.waist_y}
+                        stroke="hsl(var(--neon-chest))" 
+                        strokeWidth={hoveredSpec === 'waist' ? '3.5' : '2'}
+                        style={{ filter: hoveredSpec === 'waist' ? 'drop-shadow(0 0 6px hsl(var(--neon-chest)))' : 'none', transition: 'all 0.2s ease' }}
+                      />
+                      <line 
+                        x1={50} y1={selectedCloth.guidelines.length_start_y} 
+                        x2={50} y2={selectedCloth.guidelines.length_end_y}
+                        stroke="hsl(var(--neon-length))" 
+                        strokeWidth={hoveredSpec === 'length' ? '3.5' : '2'}
+                        style={{ filter: hoveredSpec === 'length' ? 'drop-shadow(0 0 6px hsl(var(--neon-length)))' : 'none', transition: 'all 0.2s ease' }}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <line 
+                        x1={50 - selectedCloth.measurements.shoulder / 2} y1={selectedCloth.guidelines.shoulder_y} 
+                        x2={50 + selectedCloth.measurements.shoulder / 2} y2={selectedCloth.guidelines.shoulder_y}
+                        stroke="hsl(var(--neon-shoulder))" 
+                        strokeWidth={hoveredSpec === 'shoulder' ? '3.5' : '2'}
+                        style={{ filter: hoveredSpec === 'shoulder' ? 'drop-shadow(0 0 6px hsl(var(--neon-shoulder)))' : 'none', transition: 'all 0.2s ease' }}
+                      />
+                      <line 
+                        x1={50 - selectedCloth.measurements.chest / 2} y1={selectedCloth.guidelines.chest_y} 
+                        x2={50 + selectedCloth.measurements.chest / 2} y2={selectedCloth.guidelines.chest_y}
+                        stroke="hsl(var(--neon-chest))" 
+                        strokeWidth={hoveredSpec === 'chest' ? '3.5' : '2'}
+                        style={{ filter: hoveredSpec === 'chest' ? 'drop-shadow(0 0 6px hsl(var(--neon-chest)))' : 'none', transition: 'all 0.2s ease' }}
+                      />
+                      <line 
+                        x1={50 - selectedCloth.measurements.shoulder / 2} y1={selectedCloth.guidelines.shoulder_y} 
+                        x2={selectedCloth.guidelines.sleeve_end_x} y2={48}
+                        stroke="hsl(var(--neon-sleeve))" 
+                        strokeWidth={hoveredSpec === 'sleeve' ? '3.5' : '2'}
+                        style={{ filter: hoveredSpec === 'sleeve' ? 'drop-shadow(0 0 6px hsl(var(--neon-sleeve)))' : 'none', transition: 'all 0.2s ease' }}
+                      />
+                      <line 
+                        x1={50} y1={selectedCloth.guidelines.length_start_y} 
+                        x2={50} y2={selectedCloth.guidelines.length_end_y}
+                        stroke="hsl(var(--neon-length))" 
+                        strokeWidth={hoveredSpec === 'length' ? '3.5' : '2'}
+                        style={{ filter: hoveredSpec === 'length' ? 'drop-shadow(0 0 6px hsl(var(--neon-length)))' : 'none', transition: 'all 0.2s ease' }}
+                      />
+                    </>
+                  )}
+                </svg>
+              </div>
+            )}
 
             {/* Right side: clothing properties + compare sizes */}
             <div className={styles.modalInfoArea}>
@@ -1212,7 +1495,16 @@ export default function DashboardPage() {
               )}
 
               {/* Claim Action Button */}
-              <div style={{ marginTop: 'auto' }}>
+              <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {!isTryOnActive && (
+                  <button 
+                    className="glow-btn-secondary" 
+                    style={{ width: '100%', padding: '12px', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', border: '1px solid hsl(var(--primary)/0.3)', fontWeight: '700' }}
+                    onClick={startCamera}
+                  >
+                    ✨ 가상으로 입어보기 (카메라 연동)
+                  </button>
+                )}
                 {selectedCloth.status === 'available' ? (
                   <button 
                     className="glow-btn" 
