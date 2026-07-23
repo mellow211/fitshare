@@ -327,7 +327,7 @@ export default function DashboardPage() {
               const leftHip = keypoints.find(k => k.part === 'leftHip');
               const rightHip = keypoints.find(k => k.part === 'rightHip');
               
-              if (leftHip && rightHip && leftHip.position.x > 5 && rightHip.position.x > 5 && leftHip.score > 0.15 && rightHip.score > 0.15) {
+              if (leftHip && rightHip && leftHip.position.x > 5 && rightHip.position.x > 5 && (leftHip.score > 0.05 || rightHip.score > 0.05)) {
                 const midX = (leftHip.position.x + rightHip.position.x) / 2;
                 const midY = (leftHip.position.y + rightHip.position.y) / 2;
                 const width = Math.abs(leftHip.position.x - rightHip.position.x);
@@ -336,32 +336,53 @@ export default function DashboardPage() {
                 const normY = midY / vidH;
                 const normW = width / vidW;
 
-                const percentX = Math.max(-40, Math.min(40, normX * 100 - 50));
-                const percentY = Math.max(-40, Math.min(40, normY * 100 - 45));
-                const scaleFactor = Math.max(0.4, Math.min(2.2, normW / 0.22));
+                const percentX = Math.max(-42, Math.min(42, normX * 100 - 50));
+                const percentY = Math.max(-42, Math.min(42, normY * 100 - 45));
+                const targetScale = Math.max(0.35, Math.min(2.5, normW / 0.20));
 
-                setTryOnOffset({ x: percentX, y: percentY });
-                setTryOnScale(scaleFactor);
+                setTryOnOffset(prev => ({
+                  x: prev.x * 0.6 + percentX * 0.4,
+                  y: prev.y * 0.6 + percentY * 0.4
+                }));
+                setTryOnScale(prev => prev * 0.6 + targetScale * 0.4);
               }
             } else {
               const leftShoulder = keypoints.find(k => k.part === 'leftShoulder');
               const rightShoulder = keypoints.find(k => k.part === 'rightShoulder');
-              
-              if (leftShoulder && rightShoulder && leftShoulder.position.x > 5 && rightShoulder.position.x > 5 && leftShoulder.score > 0.15 && rightShoulder.score > 0.15) {
-                const midX = (leftShoulder.position.x + rightShoulder.position.x) / 2;
-                const midY = (leftShoulder.position.y + rightShoulder.position.y) / 2;
-                const width = Math.abs(leftShoulder.position.x - rightShoulder.position.x);
+              const leftEye = keypoints.find(k => k.part === 'leftEye');
+              const rightEye = keypoints.find(k => k.part === 'rightEye');
+              const nose = keypoints.find(k => k.part === 'nose');
 
+              let midX = 0, midY = 0, width = 0;
+              let hasMatch = false;
+
+              if (leftShoulder && rightShoulder && leftShoulder.position.x > 5 && rightShoulder.position.x > 5 && (leftShoulder.score > 0.08 || rightShoulder.score > 0.08)) {
+                midX = (leftShoulder.position.x + rightShoulder.position.x) / 2;
+                midY = (leftShoulder.position.y + rightShoulder.position.y) / 2;
+                width = Math.abs(leftShoulder.position.x - rightShoulder.position.x);
+                hasMatch = true;
+              } else if (leftEye && rightEye && nose && leftEye.position.x > 5 && rightEye.position.x > 5) {
+                const eyeDist = Math.abs(leftEye.position.x - rightEye.position.x);
+                midX = nose.position.x;
+                midY = nose.position.y + eyeDist * 1.6;
+                width = eyeDist * 2.8;
+                hasMatch = true;
+              }
+
+              if (hasMatch && width > 5) {
                 const normX = midX / vidW;
                 const normY = midY / vidH;
                 const normW = width / vidW;
 
-                const percentX = Math.max(-40, Math.min(40, normX * 100 - 50));
-                const percentY = Math.max(-40, Math.min(40, normY * 100 - 28));
-                const scaleFactor = Math.max(0.6, Math.min(2.5, normW / 0.18));
+                const percentX = Math.max(-42, Math.min(42, normX * 100 - 50));
+                const percentY = Math.max(-42, Math.min(42, normY * 100 - 28));
+                const targetScale = Math.max(0.35, Math.min(2.5, normW / 0.18));
 
-                setTryOnOffset({ x: percentX, y: percentY });
-                setTryOnScale(scaleFactor);
+                setTryOnOffset(prev => ({
+                  x: prev.x * 0.6 + percentX * 0.4,
+                  y: prev.y * 0.6 + percentY * 0.4
+                }));
+                setTryOnScale(prev => prev * 0.6 + targetScale * 0.4);
               }
             }
           }
