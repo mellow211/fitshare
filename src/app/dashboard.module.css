@@ -1312,7 +1312,7 @@
 .tryOnContainer {
   position: relative;
   width: 100%;
-  height: 100%;
+  aspect-ratio: 1/1;
   background: #000;
   overflow: hidden;
   display: flex;

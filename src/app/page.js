@@ -122,6 +122,9 @@ export default function DashboardPage() {
   useEffect(() => {
     if (isTryOnActive && streamRef.current && videoRef.current) {
       videoRef.current.srcObject = streamRef.current;
+      videoRef.current.play().catch(err => {
+        console.warn("Auto-play blocked, retrying programmatically:", err);
+      });
     }
   }, [isTryOnActive]);
 
@@ -1219,8 +1222,9 @@ export default function DashboardPage() {
 
                 <video 
                   ref={videoRef} 
-                  autoPlay 
-                  playsInline 
+                  autoPlay={true}
+                  playsInline={true}
+                  muted={true}
                   className={styles.tryOnVideo}
                 />
 
