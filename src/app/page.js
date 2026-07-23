@@ -1395,8 +1395,8 @@ export default function DashboardPage() {
 
                   <button className={styles.tryOnBtn} onClick={toggleFacingMode} title="카메라 전면/후면 전환">🔃</button>
                   <button className={styles.tryOnBtn} onClick={() => { setTryOnScale(1.0); setTryOnOffset({ x: 0, y: 0 }); }} title="초기화">🔄</button>
-                  <button className={styles.tryOnBtn} onClick={captureTryOn} title="피팅 캡쳐 촬영" style={{ background: 'hsl(var(--primary))' }}>📸</button>
-                  <button className={styles.tryOnBtn} onClick={stopCamera} title="종료" style={{ background: 'hsl(var(--danger))' }}>❌</button>
+                  <button className={`${styles.tryOnBtn} ${styles.tryOnBtnPrimary}`} onClick={captureTryOn} title="피팅 캡쳐 촬영">📸</button>
+                  <button className={`${styles.tryOnBtn} ${styles.tryOnBtnDanger}`} onClick={stopCamera} title="종료">❌</button>
                 </div>
               </div>
             ) : (
