@@ -63,6 +63,7 @@ export default function DashboardPage() {
   const [tryOnOffset, setTryOnOffset] = useState({ x: 0, y: 0 });
   const [isFlashing, setIsFlashing] = useState(false);
   const [facingMode, setFacingMode] = useState('user'); 
+  const [cameraZoom, setCameraZoom] = useState(1.0);
   const [transparentImageUrl, setTransparentImageUrl] = useState(null);
   const [cameraStream, setCameraStream] = useState(null);
 
@@ -165,7 +166,27 @@ export default function DashboardPage() {
         const width = canvas.width;
         const height = canvas.height;
 
-        // BFS/DFS from all border pixels
+        // 1. Sample border pixels to compute average background color
+        let sampleR = 0, sampleG = 0, sampleB = 0, sampleCount = 0;
+        const sampleCoords = [
+          [5, 5], [width - 5, 5], [5, height - 5], [width - 5, height - 5],
+          [Math.floor(width / 2), 5], [Math.floor(width / 2), height - 5],
+          [5, Math.floor(height / 2)], [width - 5, Math.floor(height / 2)]
+        ];
+
+        for (const [sx, sy] of sampleCoords) {
+          const sIdx = (sy * width + sx) * 4;
+          sampleR += data[sIdx];
+          sampleG += data[sIdx + 1];
+          sampleB += data[sIdx + 2];
+          sampleCount++;
+        }
+
+        const bgR = sampleR / sampleCount;
+        const bgG = sampleG / sampleCount;
+        const bgB = sampleB / sampleCount;
+
+        // 2. BFS from border pixels to remove background
         const queue = [];
         const visited = new Uint8Array(width * height);
 
@@ -187,13 +208,21 @@ export default function DashboardPage() {
           const [cx, cy] = queue[head++];
           const idx = (cy * width + cx) * 4;
           const r = data[idx];
-          const g = data[idx+1];
-          const b = data[idx+2];
-          const a = data[idx+3];
+          const g = data[idx + 1];
+          const b = data[idx + 2];
+          const a = data[idx + 3];
 
-          // If background pixel is light grey/white or near starting colors
-          if (a > 0 && r > 210 && g > 210 && b > 210) {
-            data[idx+3] = 0; // Clear background
+          if (a === 0) continue;
+
+          const lum = (r + g + b) / 3;
+          const sat = Math.max(r, g, b) - Math.min(r, g, b);
+          const colorDist = Math.abs(r - bgR) + Math.abs(g - bgG) + Math.abs(b - bgB);
+
+          // Background pixel condition: high luminance or close to sampled background color
+          const isBg = (lum > 175 && sat < 35) || (colorDist < 75) || (lum > 210);
+
+          if (isBg) {
+            data[idx + 3] = 0; // Make transparent
 
             const neighbors = [
               [cx + 1, cy],
@@ -213,10 +242,17 @@ export default function DashboardPage() {
           }
         }
 
-        // Clean up remaining pure white specks
+        // 3. Final pass: clear any remaining high-luminance low-saturation white specks
         for (let i = 0; i < data.length; i += 4) {
-          if (data[i+3] > 0 && data[i] > 245 && data[i+1] > 245 && data[i+2] > 245) {
-            data[i+3] = 0;
+          if (data[i + 3] > 0) {
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+            const lum = (r + g + b) / 3;
+            const sat = Math.max(r, g, b) - Math.min(r, g, b);
+            if (lum > 225 && sat < 20) {
+              data[i + 3] = 0;
+            }
           }
         }
 
@@ -230,7 +266,6 @@ export default function DashboardPage() {
     img.onerror = () => {
       setTransparentImageUrl(imageUrl);
     };
-    // Fetch image through API proxy to bypass Supabase CORS blocks
     img.src = `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`;
   };
 
@@ -295,21 +330,21 @@ export default function DashboardPage() {
 
           if (pose && pose.keypoints) {
             const keypoints = pose.keypoints;
-            const videoW = videoRef.current.videoWidth || 640;
-            const videoH = videoRef.current.videoHeight || 640;
+            const displayW = videoRef.current.clientWidth || 360;
+            const displayH = videoRef.current.clientHeight || 480;
             
             if (selectedCloth.category === '하의') {
               const leftHip = keypoints.find(k => k.part === 'leftHip');
               const rightHip = keypoints.find(k => k.part === 'rightHip');
               
-              if (leftHip && rightHip && leftHip.score > 0.4 && rightHip.score > 0.4) {
+              if (leftHip && rightHip && leftHip.score > 0.18 && rightHip.score > 0.18) {
                 const midX = (leftHip.position.x + rightHip.position.x) / 2;
                 const midY = (leftHip.position.y + rightHip.position.y) / 2;
                 const width = Math.abs(leftHip.position.x - rightHip.position.x);
 
-                const percentX = (midX / videoW) * 100 - 50;
-                const percentY = (midY / videoH) * 100 - 45;
-                const scaleFactor = (width / (videoW * 0.22)); // Adjust base scale dynamically
+                const percentX = Math.max(-45, Math.min(45, (midX / displayW) * 100 - 50));
+                const percentY = Math.max(-45, Math.min(45, (midY / displayH) * 100 - 45));
+                const scaleFactor = Math.max(0.4, Math.min(2.5, width / (displayW * 0.22)));
 
                 setTryOnOffset({ x: percentX, y: percentY });
                 setTryOnScale(scaleFactor);
@@ -318,14 +353,14 @@ export default function DashboardPage() {
               const leftShoulder = keypoints.find(k => k.part === 'leftShoulder');
               const rightShoulder = keypoints.find(k => k.part === 'rightShoulder');
               
-              if (leftShoulder && rightShoulder && leftShoulder.score > 0.4 && rightShoulder.score > 0.4) {
+              if (leftShoulder && rightShoulder && leftShoulder.score > 0.18 && rightShoulder.score > 0.18) {
                 const midX = (leftShoulder.position.x + rightShoulder.position.x) / 2;
                 const midY = (leftShoulder.position.y + rightShoulder.position.y) / 2;
                 const width = Math.abs(leftShoulder.position.x - rightShoulder.position.x);
 
-                const percentX = (midX / videoW) * 100 - 50;
-                const percentY = (midY / videoH) * 100 - 40;
-                const scaleFactor = (width / (videoW * 0.25)); // Adjust base scale dynamically
+                const percentX = Math.max(-45, Math.min(45, (midX / displayW) * 100 - 50));
+                const percentY = Math.max(-45, Math.min(45, (midY / displayH) * 100 - 38));
+                const scaleFactor = Math.max(0.4, Math.min(2.5, width / (displayW * 0.25)));
 
                 setTryOnOffset({ x: percentX, y: percentY });
                 setTryOnScale(scaleFactor);
@@ -1343,6 +1378,10 @@ export default function DashboardPage() {
                   playsInline={true}
                   muted={true}
                   className={`${styles.tryOnVideo} ${facingMode === 'user' ? styles.tryOnVideoMirror : ''}`}
+                  style={{
+                    transform: `${facingMode === 'user' ? 'scaleX(-1)' : ''} scale(${cameraZoom})`,
+                    transformOrigin: 'center center'
+                  }}
                 />
 
                 <div 
@@ -1376,14 +1415,21 @@ export default function DashboardPage() {
                 )}
 
                 <div className={styles.tryOnToolbar}>
-                  <button className={styles.tryOnBtn} onClick={() => setTryOnOffset(prev => ({ ...prev, y: prev.y - 3 }))} title="위로">⬆️</button>
-                  <button className={styles.tryOnBtn} onClick={() => setTryOnOffset(prev => ({ ...prev, y: prev.y + 3 }))} title="아래로">⬇️</button>
-                  <button className={styles.tryOnBtn} onClick={() => setTryOnOffset(prev => ({ ...prev, x: prev.x - 3 }))} title="왼쪽으로">⬅️</button>
-                  <button className={styles.tryOnBtn} onClick={() => setTryOnOffset(prev => ({ ...prev, x: prev.x + 3 }))} title="오른쪽으로">➡️</button>
+                  {/* Camera view zoom out / in */}
+                  <button className={styles.tryOnBtn} onClick={() => setCameraZoom(z => Math.max(0.4, z - 0.15))} title="카메라 시야 축소 (전신 담기)">🔍-</button>
+                  <button className={styles.tryOnBtn} onClick={() => setCameraZoom(z => Math.min(2.0, z + 0.15))} title="카메라 시야 확대">🔍+</button>
 
-                  <button className={styles.tryOnBtn} onClick={() => setTryOnScale(s => Math.min(2.5, s + 0.1))} title="크게">➕</button>
-                  <button className={styles.tryOnBtn} onClick={() => setTryOnScale(s => Math.max(0.4, s - 0.1))} title="작게">➖</button>
+                  {/* Directional clothes alignment */}
+                  <button className={styles.tryOnBtn} onClick={() => setTryOnOffset(prev => ({ ...prev, y: prev.y - 3 }))} title="옷 위로">⬆️</button>
+                  <button className={styles.tryOnBtn} onClick={() => setTryOnOffset(prev => ({ ...prev, y: prev.y + 3 }))} title="옷 아래로">⬇️</button>
+                  <button className={styles.tryOnBtn} onClick={() => setTryOnOffset(prev => ({ ...prev, x: prev.x - 3 }))} title="옷 왼쪽으로">⬅️</button>
+                  <button className={styles.tryOnBtn} onClick={() => setTryOnOffset(prev => ({ ...prev, x: prev.x + 3 }))} title="옷 오른쪽으로">➡️</button>
 
+                  {/* Clothes scale */}
+                  <button className={styles.tryOnBtn} onClick={() => setTryOnScale(s => Math.min(2.5, s + 0.1))} title="옷 크게">➕</button>
+                  <button className={styles.tryOnBtn} onClick={() => setTryOnScale(s => Math.max(0.4, s - 0.1))} title="옷 작게">➖</button>
+
+                  {/* Pose tracking AI */}
                   <button 
                     className={`${styles.tryOnBtn} ${isPoseTrackingActive ? styles.tryOnBtnActive : ''}`} 
                     onClick={startPoseTracking} 
@@ -1393,8 +1439,13 @@ export default function DashboardPage() {
                     {isPoseModelLoading ? '⏳' : '🤖'}
                   </button>
 
+                  {/* Camera Flip */}
                   <button className={styles.tryOnBtn} onClick={toggleFacingMode} title="카메라 전면/후면 전환">🔃</button>
-                  <button className={styles.tryOnBtn} onClick={() => { setTryOnScale(1.0); setTryOnOffset({ x: 0, y: 0 }); }} title="초기화">🔄</button>
+                  
+                  {/* Reset */}
+                  <button className={styles.tryOnBtn} onClick={() => { setTryOnScale(1.0); setTryOnOffset({ x: 0, y: 0 }); setCameraZoom(1.0); }} title="초기화">🔄</button>
+                  
+                  {/* Snapshot & Exit */}
                   <button className={`${styles.tryOnBtn} ${styles.tryOnBtnPrimary}`} onClick={captureTryOn} title="피팅 캡쳐 촬영">📸</button>
                   <button className={`${styles.tryOnBtn} ${styles.tryOnBtnDanger}`} onClick={stopCamera} title="종료">❌</button>
                 </div>
