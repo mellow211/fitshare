@@ -780,6 +780,11 @@ export default function DashboardPage() {
   // Handle reserve click
   const openReserveModal = (cloth) => {
     setSelectedCloth(cloth);
+    if (currentUser) {
+      setReserveName(currentUser.childName || currentUser.nickname || '');
+      setReserveGrade(currentUser.gradeClass || currentUser.grade || '');
+      setReservePhone(currentUser.phone || '');
+    }
     setIsReserveModalOpen(true);
   };
 
@@ -869,6 +874,11 @@ export default function DashboardPage() {
 
   const openOutfitReserveModal = (outfit) => {
     setSelectedOutfit(outfit);
+    if (currentUser) {
+      setReserveName(currentUser.childName || currentUser.nickname || '');
+      setReserveGrade(currentUser.gradeClass || currentUser.grade || '');
+      setReservePhone(currentUser.phone || '');
+    }
     setIsOutfitReserveModalOpen(true);
   };
 
@@ -1892,9 +1902,15 @@ export default function DashboardPage() {
             <h3 style={{ fontSize: '20px', fontFamily: 'var(--font-title)', fontWeight: '800', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px', color: 'hsl(var(--primary))' }}>
               📝 나눔 신청서 작성
             </h3>
-            <p style={{ fontSize: '13px', color: 'hsl(var(--muted-foreground))', marginBottom: '20px', lineHeight: '1.4' }}>
+            <p style={{ fontSize: '13px', color: 'hsl(var(--muted-foreground))', marginBottom: '16px', lineHeight: '1.4' }}>
               나눔 옷은 학교 수거함에서 본인 확인 후 직접 수령하실 수 있습니다. 간단한 신청자 정보를 입력해주세요.
             </p>
+
+            {currentUser && (
+              <div style={{ background: 'rgba(16, 185, 129, 0.15)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: 'var(--radius-sm)', padding: '8px 12px', fontSize: '11px', color: '#34d399', fontWeight: '600', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Sparkles size={14} /> ✨ '{currentUser.nickname}' 님의 회원 프로필 정보로 자동 작성되었습니다.
+              </div>
+            )}
 
             <div className={styles.formGrid}>
               <div>
