@@ -78,3 +78,43 @@ export function calculateCarbonSavings(shareCount = 0) {
   const pineTrees = (shareCount * 0.4).toFixed(1);
   return { co2SavedKg, pineTrees };
 }
+
+// Generate dynamic leaderboard data combining top community members & active user
+export function getLeaderboardData(currentUser) {
+  const defaultBoard = [
+    { rank: 1, name: '지후네 학부모', space: 'SESOL-2026', xp: 1850, shares: 7, co2: '17.5', level: '👑 Lv.4 지구 영웅', avatar: '👑' },
+    { rank: 2, name: '민준이네 (4학년 2반)', space: 'SESOL-2026', xp: 1420, shares: 5, co2: '12.5', level: '🌍 Lv.4 지구 영웅', avatar: '🎒' },
+    { rank: 3, name: '서연 맘', space: 'SESOL-2026', xp: 980, shares: 4, co2: '10.0', level: '🌿 Lv.3 초록 옷장', avatar: '🌱' },
+    { rank: 4, name: '하은이네 학부모', space: 'SESOL-2026', xp: 620, shares: 2, co2: '5.0', level: '🎒 Lv.2 나눔 모범생', avatar: '🧸' },
+    { rank: 5, name: '도윤 맘 (2학년 1반)', space: 'SESOL-2026', xp: 450, shares: 1, co2: '2.5', level: '🌱 Lv.2 나눔 모범생', avatar: '🍀' },
+  ];
+
+  if (currentUser) {
+    const userXp = currentUser.xp || 100;
+    const userShares = currentUser.sharesCount || 1;
+    const userCo2 = (userShares * 2.5).toFixed(1);
+    const userLevel = getLevelInfo(userXp);
+
+    const me = {
+      rank: 0,
+      isMe: true,
+      name: `${currentUser.nickname} (나)`,
+      space: currentUser.spaceCode || 'SESOL-2026',
+      xp: userXp,
+      shares: userShares,
+      co2: userCo2,
+      level: `${userLevel.icon} Lv.${userLevel.level} ${userLevel.title}`,
+      avatar: userLevel.icon
+    };
+
+    const combined = [...defaultBoard, me];
+    combined.sort((a, b) => b.xp - a.xp);
+    combined.forEach((item, idx) => {
+      item.rank = idx + 1;
+    });
+
+    return combined;
+  }
+
+  return defaultBoard;
+}

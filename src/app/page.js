@@ -13,6 +13,7 @@ import { getCurrentUser, awardUserXP } from '../lib/auth';
 import GamificationBar from '../components/GamificationBar';
 import AuthModal from '../components/AuthModal';
 import BadgeModal from '../components/BadgeModal';
+import LeaderboardModal from '../components/LeaderboardModal';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -21,6 +22,7 @@ export default function DashboardPage() {
   const [currentUser, setCurrentUser] = useState(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
+  const [isLeaderboardModalOpen, setIsLeaderboardModalOpen] = useState(false);
 
   useEffect(() => {
     const user = getCurrentUser();
@@ -791,7 +793,9 @@ export default function DashboardPage() {
       const reservation = {
         student_name: reserveName,
         grade: reserveGrade,
-        parent_phone: reservePhone
+        parent_phone: reservePhone,
+        user_id: currentUser?.id || null,
+        user_nickname: currentUser?.nickname || reserveName
       };
 
       await reserveCloth(spaceCode, selectedCloth.id, reservation);
@@ -820,7 +824,32 @@ export default function DashboardPage() {
   };
 
   const handleCancelReservation = async (cloth) => {
-    if (!cloth) return;
+    if (!cloth || !cloth.reservation) return;
+
+    const res = cloth.reservation;
+    const isOwner = currentUser && (
+      res.user_id === currentUser.id || 
+      res.user_nickname === currentUser.nickname || 
+      res.student_name === currentUser.nickname
+    );
+
+    if (!isOwner) {
+      const inputInfo = prompt(
+        `🔒 예약자 본인 확인이 필요합니다.\n'${cloth.name}' 예약 시 입력했던 [학생 이름 또는 연락처 뒷 4자리]를 입력해 주세요:`
+      );
+
+      if (!inputInfo) return;
+
+      const cleanInput = inputInfo.trim();
+      const matchesName = res.student_name && res.student_name.includes(cleanInput);
+      const matchesPhone = res.parent_phone && res.parent_phone.includes(cleanInput);
+
+      if (!matchesName && !matchesPhone) {
+        alert('⚠️ 예약자 정보가 일치하지 않습니다. 본인이 등록한 예약만 취소할 수 있습니다.');
+        return;
+      }
+    }
+
     if (!confirm(`'${cloth.name}' 의류 나눔 예약을 취소하시겠습니까?\n취소 시 다른 학부모가 예약할 수 있도록 다시 공개됩니다.`)) {
       return;
     }
@@ -1070,6 +1099,7 @@ export default function DashboardPage() {
         currentUser={currentUser}
         onOpenAuth={() => setIsAuthModalOpen(true)}
         onOpenBadges={() => setIsBadgeModalOpen(true)}
+        onOpenLeaderboard={() => setIsLeaderboardModalOpen(true)}
       />
 
       {/* Mascot Guidance Widget */}
@@ -2075,6 +2105,12 @@ export default function DashboardPage() {
       <BadgeModal 
         isOpen={isBadgeModalOpen}
         onClose={() => setIsBadgeModalOpen(false)}
+        currentUser={currentUser}
+      />
+
+      <LeaderboardModal 
+        isOpen={isLeaderboardModalOpen}
+        onClose={() => setIsLeaderboardModalOpen(false)}
         currentUser={currentUser}
       />
     </div>

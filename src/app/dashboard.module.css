@@ -1880,6 +1880,132 @@
   color: #c084fc !important;
 }
 
+/* Leaderboard Styles */
+.leaderboardTabs {
+  display: flex;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 4px;
+  border-radius: var(--radius-md);
+  margin-bottom: 16px;
+}
+
+.tabBtn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #cbd5e1;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.tabBtnActive {
+  background: #10b981 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.leaderboardList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.rankItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
+}
+
+.rankItemTop {
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.1) 0%, rgba(255, 255, 255, 0.04) 100%);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.rankItemMe {
+  border: 2px solid #10b981 !important;
+  background: rgba(16, 185, 129, 0.12) !important;
+}
+
+.rankNumber {
+  font-size: 20px;
+  font-weight: 800;
+  min-width: 32px;
+  text-align: center;
+}
+
+.rankUserInfo {
+  flex: 1;
+}
+
+.rankNameRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #ffffff !important;
+}
+
+.meTag {
+  background: #10b981;
+  color: white;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 8px;
+}
+
+.rankLevelSub {
+  font-size: 11px;
+  color: #cbd5e1 !important;
+}
+
+.rankScoreBox {
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.xpScoreText {
+  color: #34d399 !important;
+}
+
+.co2ScoreText {
+  color: #38bdf8 !important;
+}
+
+.myRankFooter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  padding: 10px;
+  border-radius: var(--radius-md);
+  margin-top: 16px;
+  font-size: 12px;
+  color: #ffffff !important;
+}
+.myRankFooter strong {
+  color: #34d399 !important;
+}
+
 
 
 
