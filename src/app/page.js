@@ -85,6 +85,7 @@ export default function DashboardPage() {
   const [secondaryTransparentImageUrl, setSecondaryTransparentImageUrl] = useState(null);
   const [tryOnOffsetSecondary, setTryOnOffsetSecondary] = useState({ x: 0, y: 0 });
   const [tryOnScaleSecondary, setTryOnScaleSecondary] = useState(1.0);
+  const [activeAdjustTarget, setActiveAdjustTarget] = useState('primary'); // 'primary' or 'secondary'
 
   const [isFlashing, setIsFlashing] = useState(false);
   const [facingMode, setFacingMode] = useState('user'); 
@@ -600,6 +601,31 @@ export default function DashboardPage() {
     setSelectedSecondaryCloth(bottomCloth);
     setIsTryOnActive(false);
     triggerToast(`👕+👖 '${topCloth.name}' + '${bottomCloth.name}' 세트 가상 피팅 팝업이 열렸습니다!`);
+  };
+
+  const adjustManualOffset = (dx, dy) => {
+    if (activeAdjustTarget === 'secondary' && selectedSecondaryCloth) {
+      setTryOnOffsetSecondary(prev => ({ x: prev.x + dx, y: prev.y + dy }));
+    } else {
+      setTryOnOffset(prev => ({ x: prev.x + dx, y: prev.y + dy }));
+    }
+  };
+
+  const adjustManualScale = (dScale) => {
+    if (activeAdjustTarget === 'secondary' && selectedSecondaryCloth) {
+      setTryOnScaleSecondary(s => Math.max(0.4, Math.min(2.5, s + dScale)));
+    } else {
+      setTryOnScale(s => Math.max(0.4, Math.min(2.5, s + dScale)));
+    }
+  };
+
+  const resetManualAdjustments = () => {
+    setTryOnScale(1.0);
+    setTryOnOffset({ x: 0, y: 0 });
+    setTryOnScaleSecondary(1.0);
+    setTryOnOffsetSecondary({ x: 0, y: 0 });
+    setCameraZoom(1.0);
+    triggerToast('피팅 위치 및 크기가 초기화되었습니다.');
   };
 
   const triggerToast = (msg) => {
@@ -1661,6 +1687,46 @@ export default function DashboardPage() {
                   }}
                 />
 
+                {/* Dual Target Manual Selection Pill Switcher */}
+                {selectedSecondaryCloth && (
+                  <div style={{ position: 'absolute', top: '16px', left: '50%', transform: 'translateX(-50%)', zIndex: 30, display: 'flex', gap: '6px', background: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(8px)', padding: '4px 8px', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.2)', boxShadow: '0 4px 15px rgba(0,0,0,0.3)' }}>
+                    <button
+                      type="button"
+                      style={{
+                        padding: '5px 14px',
+                        borderRadius: '16px',
+                        fontSize: '11px',
+                        fontWeight: '800',
+                        border: 'none',
+                        cursor: 'pointer',
+                        background: activeAdjustTarget === 'primary' ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'transparent',
+                        color: activeAdjustTarget === 'primary' ? '#fff' : '#94a3b8',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onClick={() => setActiveAdjustTarget('primary')}
+                    >
+                      {selectedCloth.category === '하의' ? '👖 하의 수동 조절 중' : '👕 상의 수동 조절 중'}
+                    </button>
+                    <button
+                      type="button"
+                      style={{
+                        padding: '5px 14px',
+                        borderRadius: '16px',
+                        fontSize: '11px',
+                        fontWeight: '800',
+                        border: 'none',
+                        cursor: 'pointer',
+                        background: activeAdjustTarget === 'secondary' ? 'linear-gradient(135deg, #a855f7 0%, #7e22ce 100%)' : 'transparent',
+                        color: activeAdjustTarget === 'secondary' ? '#fff' : '#94a3b8',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onClick={() => setActiveAdjustTarget('secondary')}
+                    >
+                      {selectedSecondaryCloth.category === '하의' ? '👖 하의 수동 조절 중' : '👕 상의 수동 조절 중'}
+                    </button>
+                  </div>
+                )}
+
                 {/* Primary Garment Overlay */}
                 <div 
                   className={styles.tryOnClothingOverlay}
@@ -1670,8 +1736,10 @@ export default function DashboardPage() {
                     transform: `translate(-50%, -50%) scale(${tryOnScale})`,
                     width: '70%',
                     height: '70%',
-                    zIndex: selectedCloth.category === '하의' ? 12 : 15
+                    zIndex: selectedCloth.category === '하의' ? 12 : 15,
+                    cursor: 'pointer'
                   }}
+                  onClick={() => setActiveAdjustTarget('primary')}
                 >
                   <img 
                     src={transparentImageUrl || selectedCloth.image_url} 
@@ -1690,8 +1758,10 @@ export default function DashboardPage() {
                       transform: `translate(-50%, -50%) scale(${tryOnScaleSecondary})`,
                       width: '70%',
                       height: '70%',
-                      zIndex: selectedSecondaryCloth.category === '하의' ? 12 : 15
+                      zIndex: selectedSecondaryCloth.category === '하의' ? 12 : 15,
+                      cursor: 'pointer'
                     }}
+                    onClick={() => setActiveAdjustTarget('secondary')}
                   >
                     <img 
                       src={secondaryTransparentImageUrl || selectedSecondaryCloth.image_url} 
@@ -1729,15 +1799,15 @@ export default function DashboardPage() {
                   <button className={styles.tryOnBtn} onClick={() => setCameraZoom(z => Math.max(0.4, z - 0.15))} title="카메라 시야 축소 (전신 담기)">🔍-</button>
                   <button className={styles.tryOnBtn} onClick={() => setCameraZoom(z => Math.min(2.0, z + 0.15))} title="카메라 시야 확대">🔍+</button>
 
-                  {/* Directional clothes alignment */}
-                  <button className={styles.tryOnBtn} onClick={() => setTryOnOffset(prev => ({ ...prev, y: prev.y - 3 }))} title="옷 위로">⬆️</button>
-                  <button className={styles.tryOnBtn} onClick={() => setTryOnOffset(prev => ({ ...prev, y: prev.y + 3 }))} title="옷 아래로">⬇️</button>
-                  <button className={styles.tryOnBtn} onClick={() => setTryOnOffset(prev => ({ ...prev, x: prev.x - 3 }))} title="옷 왼쪽으로">⬅️</button>
-                  <button className={styles.tryOnBtn} onClick={() => setTryOnOffset(prev => ({ ...prev, x: prev.x + 3 }))} title="옷 오른쪽으로">➡️</button>
+                  {/* Directional clothes alignment (Target Aware) */}
+                  <button className={styles.tryOnBtn} onClick={() => adjustManualOffset(0, -3)} title="선택된 옷 위로">⬆️</button>
+                  <button className={styles.tryOnBtn} onClick={() => adjustManualOffset(0, +3)} title="선택된 옷 아래로">⬇️</button>
+                  <button className={styles.tryOnBtn} onClick={() => adjustManualOffset(-3, 0)} title="선택된 옷 왼쪽으로">⬅️</button>
+                  <button className={styles.tryOnBtn} onClick={() => adjustManualOffset(+3, 0)} title="선택된 옷 오른쪽으로">➡️</button>
 
-                  {/* Clothes scale */}
-                  <button className={styles.tryOnBtn} onClick={() => setTryOnScale(s => Math.min(2.5, s + 0.1))} title="옷 크게">➕</button>
-                  <button className={styles.tryOnBtn} onClick={() => setTryOnScale(s => Math.max(0.4, s - 0.1))} title="옷 작게">➖</button>
+                  {/* Clothes scale (Target Aware) */}
+                  <button className={styles.tryOnBtn} onClick={() => adjustManualScale(+0.1)} title="선택된 옷 크게">➕</button>
+                  <button className={styles.tryOnBtn} onClick={() => adjustManualScale(-0.1)} title="선택된 옷 작게">➖</button>
 
                   {/* Pose tracking AI */}
                   <button 
@@ -1753,7 +1823,7 @@ export default function DashboardPage() {
                   <button className={styles.tryOnBtn} onClick={toggleFacingMode} title="카메라 전면/후면 전환">🔃</button>
                   
                   {/* Reset */}
-                  <button className={styles.tryOnBtn} onClick={() => { setTryOnScale(1.0); setTryOnOffset({ x: 0, y: 0 }); setCameraZoom(1.0); }} title="초기화">🔄</button>
+                  <button className={styles.tryOnBtn} onClick={resetManualAdjustments} title="위치 및 크기 초기화">🔄</button>
                   
                   {/* Snapshot & Exit */}
                   <button className={`${styles.tryOnBtn} ${styles.tryOnBtnPrimary}`} onClick={captureTryOn} title="피팅 캡쳐 촬영">📸</button>
