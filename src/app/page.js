@@ -79,6 +79,13 @@ export default function DashboardPage() {
   const [isPoseModelLoading, setIsPoseModelLoading] = useState(false);
   const [tryOnScale, setTryOnScale] = useState(1.0);
   const [tryOnOffset, setTryOnOffset] = useState({ x: 0, y: 0 });
+
+  // Dual Fitting (Simultaneous Top + Bottom Try-On)
+  const [selectedSecondaryCloth, setSelectedSecondaryCloth] = useState(null);
+  const [secondaryTransparentImageUrl, setSecondaryTransparentImageUrl] = useState(null);
+  const [tryOnOffsetSecondary, setTryOnOffsetSecondary] = useState({ x: 0, y: 0 });
+  const [tryOnScaleSecondary, setTryOnScaleSecondary] = useState(1.0);
+
   const [isFlashing, setIsFlashing] = useState(false);
   const [facingMode, setFacingMode] = useState('user'); 
   const [cameraZoom, setCameraZoom] = useState(1.0);
@@ -167,8 +174,9 @@ export default function DashboardPage() {
     }
   }, [isTryOnActive, cameraStream]);
 
-  const processNukki = (imageUrl) => {
+  const processNukki = (imageUrl, isSecondary = false) => {
     if (!imageUrl) return;
+    const setter = isSecondary ? setSecondaryTransparentImageUrl : setTransparentImageUrl;
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => {
@@ -261,14 +269,14 @@ export default function DashboardPage() {
         }
 
         ctx.putImageData(imgData, 0, 0);
-        setTransparentImageUrl(canvas.toDataURL('image/png'));
+        setter(canvas.toDataURL('image/png'));
       } catch (err) {
         console.warn("Canvas pixel read error (CORS):", err);
-        setTransparentImageUrl(imageUrl);
+        setter(imageUrl);
       }
     };
     img.onerror = () => {
-      setTransparentImageUrl(imageUrl);
+      setter(imageUrl);
     };
     if (imageUrl.startsWith('data:')) {
       img.src = imageUrl;
@@ -279,11 +287,19 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (selectedCloth) {
-      processNukki(selectedCloth.image_url);
+      processNukki(selectedCloth.image_url, false);
     } else {
       setTransparentImageUrl(null);
     }
   }, [selectedCloth]);
+
+  useEffect(() => {
+    if (selectedSecondaryCloth) {
+      processNukki(selectedSecondaryCloth.image_url, true);
+    } else {
+      setSecondaryTransparentImageUrl(null);
+    }
+  }, [selectedSecondaryCloth]);
 
   const loadScript = (src) => {
     return new Promise((resolve, reject) => {
@@ -341,83 +357,91 @@ export default function DashboardPage() {
             const vidW = videoRef.current.videoWidth || videoRef.current.width || 640;
             const vidH = videoRef.current.videoHeight || videoRef.current.height || 640;
             
-            if (selectedCloth.category === '하의') {
-              const leftHip = keypoints.find(k => k.part === 'leftHip');
-              const rightHip = keypoints.find(k => k.part === 'rightHip');
-              
-              if (leftHip && rightHip && leftHip.position.x > 5 && rightHip.position.x > 5 && (leftHip.score > 0.05 || rightHip.score > 0.05)) {
-                const midX = (leftHip.position.x + rightHip.position.x) / 2;
-                const midY = (leftHip.position.y + rightHip.position.y) / 2;
-                const width = Math.abs(leftHip.position.x - rightHip.position.x);
+            // Check available primary and secondary garments
+            const isPrimaryBottom = selectedCloth?.category === '하의';
+            const isSecondaryActive = !!selectedSecondaryCloth;
 
-                const normX = midX / vidW;
-                const normY = midY / vidH;
-                const normW = width / vidW;
+            const leftShoulder = keypoints.find(k => k.part === 'leftShoulder');
+            const rightShoulder = keypoints.find(k => k.part === 'rightShoulder');
+            const leftEar = keypoints.find(k => k.part === 'leftEar');
+            const rightEar = keypoints.find(k => k.part === 'rightEar');
+            const leftEye = keypoints.find(k => k.part === 'leftEye');
+            const rightEye = keypoints.find(k => k.part === 'rightEye');
+            const nose = keypoints.find(k => k.part === 'nose');
+            const leftHip = keypoints.find(k => k.part === 'leftHip');
+            const rightHip = keypoints.find(k => k.part === 'rightHip');
 
-                const percentX = Math.max(-42, Math.min(42, normX * 100 - 50));
-                const percentY = Math.max(-42, Math.min(42, normY * 100 - 45));
-                const targetScale = Math.max(0.35, Math.min(2.5, normW / 0.20));
+            // --- 1. TOP GARMENT TRACKING (Shoulder-based) ---
+            let topX = 0, topY = 0, topScaleTarget = 1.0;
+            let hasTopMatch = false;
 
-                setTryOnOffset(prev => ({
-                  x: prev.x * 0.6 + percentX * 0.4,
-                  y: prev.y * 0.6 + percentY * 0.4
-                }));
-                setTryOnScale(prev => prev * 0.6 + targetScale * 0.4);
+            if (leftShoulder && rightShoulder && leftShoulder.position.x > 5 && rightShoulder.position.x > 5 && (leftShoulder.score > 0.02 || rightShoulder.score > 0.02)) {
+              const midX = (leftShoulder.position.x + rightShoulder.position.x) / 2;
+              const midY = (leftShoulder.position.y + rightShoulder.position.y) / 2;
+              const width = Math.abs(leftShoulder.position.x - rightShoulder.position.x);
+              topX = Math.max(-42, Math.min(42, (midX / vidW - 0.5) * 100));
+              topScaleTarget = Math.max(0.4, Math.min(2.0, (width / vidW) / 0.24));
+              topY = Math.max(-42, Math.min(42, (midY / vidH - 0.5) * 100 + (24.5 * topScaleTarget)));
+              hasTopMatch = true;
+            } else if (leftEar && rightEar && leftEar.position.x > 5 && rightEar.position.x > 5 && (leftEar.score > 0.05 || rightEar.score > 0.05)) {
+              const earDist = Math.abs(leftEar.position.x - rightEar.position.x);
+              const midX = (leftEar.position.x + rightEar.position.x) / 2;
+              const midY = (leftEar.position.y + rightEar.position.y) / 2 + earDist * 0.9;
+              const width = earDist * 1.75;
+              topX = Math.max(-42, Math.min(42, (midX / vidW - 0.5) * 100));
+              topScaleTarget = Math.max(0.4, Math.min(2.0, (width / vidW) / 0.24));
+              topY = Math.max(-42, Math.min(42, (midY / vidH - 0.5) * 100 + (24.5 * topScaleTarget)));
+              hasTopMatch = true;
+            } else if (leftEye && rightEye && nose && leftEye.position.x > 5 && rightEye.position.x > 5) {
+              const eyeDist = Math.abs(leftEye.position.x - rightEye.position.x);
+              const midX = nose.position.x;
+              const midY = nose.position.y + eyeDist * 2.2;
+              const width = eyeDist * 3.8;
+              topX = Math.max(-42, Math.min(42, (midX / vidW - 0.5) * 100));
+              topScaleTarget = Math.max(0.4, Math.min(2.0, (width / vidW) / 0.24));
+              topY = Math.max(-42, Math.min(42, (midY / vidH - 0.5) * 100 + (24.5 * topScaleTarget)));
+              hasTopMatch = true;
+            }
+
+            // --- 2. BOTTOM GARMENT TRACKING (Hip-based or derived from Top) ---
+            let bottomX = 0, bottomY = 0, bottomScaleTarget = 1.0;
+            let hasBottomMatch = false;
+
+            if (leftHip && rightHip && leftHip.position.x > 5 && rightHip.position.x > 5 && (leftHip.score > 0.05 || rightHip.score > 0.05)) {
+              const midX = (leftHip.position.x + rightHip.position.x) / 2;
+              const midY = (leftHip.position.y + rightHip.position.y) / 2;
+              const width = Math.abs(leftHip.position.x - rightHip.position.x);
+              bottomX = Math.max(-42, Math.min(42, (midX / vidW - 0.5) * 100));
+              bottomScaleTarget = Math.max(0.35, Math.min(2.0, (width / vidW) / 0.18));
+              bottomY = Math.max(-42, Math.min(42, (midY / vidH - 0.5) * 100 + (22 * bottomScaleTarget)));
+              hasBottomMatch = true;
+            } else if (hasTopMatch) {
+              bottomX = topX;
+              bottomScaleTarget = topScaleTarget * 0.85;
+              bottomY = topY + (28 * topScaleTarget);
+              hasBottomMatch = true;
+            }
+
+            // --- 3. APPLY TRACKING STATES TO PRIMARY AND SECONDARY OVERLAYS ---
+            if (isPrimaryBottom) {
+              // Primary is Bottom, Secondary is Top
+              if (hasBottomMatch) {
+                setTryOnOffset(prev => ({ x: prev.x * 0.7 + bottomX * 0.3, y: prev.y * 0.7 + bottomY * 0.3 }));
+                setTryOnScale(prev => prev * 0.7 + bottomScaleTarget * 0.3);
+              }
+              if (isSecondaryActive && hasTopMatch) {
+                setTryOnOffsetSecondary(prev => ({ x: prev.x * 0.7 + topX * 0.3, y: prev.y * 0.7 + topY * 0.3 }));
+                setTryOnScaleSecondary(prev => prev * 0.7 + topScaleTarget * 0.3);
               }
             } else {
-              const leftShoulder = keypoints.find(k => k.part === 'leftShoulder');
-              const rightShoulder = keypoints.find(k => k.part === 'rightShoulder');
-              const leftEar = keypoints.find(k => k.part === 'leftEar');
-              const rightEar = keypoints.find(k => k.part === 'rightEar');
-              const leftEye = keypoints.find(k => k.part === 'leftEye');
-              const rightEye = keypoints.find(k => k.part === 'rightEye');
-              const nose = keypoints.find(k => k.part === 'nose');
-
-              let midX = 0, midY = 0, width = 0;
-              let hasMatch = false;
-
-              // Priority 1: Shoulder Detection (threshold >= 0.02)
-              if (leftShoulder && rightShoulder && leftShoulder.position.x > 5 && rightShoulder.position.x > 5 && (leftShoulder.score > 0.02 || rightShoulder.score > 0.02)) {
-                midX = (leftShoulder.position.x + rightShoulder.position.x) / 2;
-                midY = (leftShoulder.position.y + rightShoulder.position.y) / 2;
-                width = Math.abs(leftShoulder.position.x - rightShoulder.position.x);
-                hasMatch = true;
-              } 
-              // Priority 2: Ear Detection Fallback
-              else if (leftEar && rightEar && leftEar.position.x > 5 && rightEar.position.x > 5 && (leftEar.score > 0.05 || rightEar.score > 0.05)) {
-                const earDist = Math.abs(leftEar.position.x - rightEar.position.x);
-                midX = (leftEar.position.x + rightEar.position.x) / 2;
-                midY = (leftEar.position.y + rightEar.position.y) / 2 + earDist * 0.9;
-                width = earDist * 1.75;
-                hasMatch = true;
+              // Primary is Top, Secondary is Bottom (or single Top)
+              if (hasTopMatch) {
+                setTryOnOffset(prev => ({ x: prev.x * 0.7 + topX * 0.3, y: prev.y * 0.7 + topY * 0.3 }));
+                setTryOnScale(prev => prev * 0.7 + topScaleTarget * 0.3);
               }
-              // Priority 3: Eye/Nose Detection Fallback
-              else if (leftEye && rightEye && nose && leftEye.position.x > 5 && rightEye.position.x > 5) {
-                const eyeDist = Math.abs(leftEye.position.x - rightEye.position.x);
-                midX = nose.position.x;
-                midY = nose.position.y + eyeDist * 2.2;
-                width = eyeDist * 3.8;
-                hasMatch = true;
-              }
-
-              if (hasMatch && width > 5) {
-                const normX = midX / vidW;
-                const normY = midY / vidH;
-                const normW = width / vidW;
-
-                // Scale garment to fit human shoulder width accurately (1:1 matching)
-                const targetScale = Math.max(0.4, Math.min(2.0, normW / 0.24));
-
-                // Mathematically invariant collar placement: collarTop === normY * 100
-                const percentX = Math.max(-42, Math.min(42, (normX - 0.5) * 100));
-                const percentY = Math.max(-42, Math.min(42, (normY - 0.5) * 100 + (24.5 * targetScale)));
-
-                // Smooth exponential moving average for flicker-free tracking
-                setTryOnOffset(prev => ({
-                  x: prev.x * 0.7 + percentX * 0.3,
-                  y: prev.y * 0.7 + percentY * 0.3
-                }));
-                setTryOnScale(prev => prev * 0.7 + targetScale * 0.3);
+              if (isSecondaryActive && hasBottomMatch) {
+                setTryOnOffsetSecondary(prev => ({ x: prev.x * 0.7 + bottomX * 0.3, y: prev.y * 0.7 + bottomY * 0.3 }));
+                setTryOnScaleSecondary(prev => prev * 0.7 + bottomScaleTarget * 0.3);
               }
             }
           }
@@ -495,20 +519,7 @@ export default function DashboardPage() {
     ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
     ctx.restore();
 
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => {
-      const drawWidth = canvas.width * 0.7 * tryOnScale;
-      const drawHeight = drawWidth;
-
-      const overlayLeft = ((50 + tryOnOffset.x) / 100) * canvas.width;
-      const overlayTop = ((50 + tryOnOffset.y) / 100) * canvas.height;
-
-      const x = overlayLeft - drawWidth / 2;
-      const y = overlayTop - drawHeight / 2;
-
-      ctx.drawImage(img, x, y, drawWidth, drawHeight);
-
+    const saveSnapshotAndAward = () => {
       const link = document.createElement('a');
       link.download = `fitshare_tryon_${selectedCloth.name.replace(/\s+/g, '_')}.png`;
       link.href = canvas.toDataURL('image/png');
@@ -526,7 +537,69 @@ export default function DashboardPage() {
         triggerToast("📸 피팅 사진이 성공적으로 저장되었습니다!");
       }
     };
-    img.src = transparentImageUrl || selectedCloth.image_url;
+
+    const drawPrimaryImg = new Image();
+    drawPrimaryImg.crossOrigin = "anonymous";
+    drawPrimaryImg.onload = () => {
+      const drawWidth = canvas.width * 0.7 * tryOnScale;
+      const drawHeight = drawWidth;
+
+      const overlayLeft = ((50 + tryOnOffset.x) / 100) * canvas.width;
+      const overlayTop = ((50 + tryOnOffset.y) / 100) * canvas.height;
+
+      const x = overlayLeft - drawWidth / 2;
+      const y = overlayTop - drawHeight / 2;
+
+      ctx.drawImage(drawPrimaryImg, x, y, drawWidth, drawHeight);
+
+      if (selectedSecondaryCloth) {
+        const drawSecImg = new Image();
+        drawSecImg.crossOrigin = "anonymous";
+        drawSecImg.onload = () => {
+          const secWidth = canvas.width * 0.7 * tryOnScaleSecondary;
+          const secHeight = secWidth;
+          const secLeft = ((50 + tryOnOffsetSecondary.x) / 100) * canvas.width;
+          const secTop = ((50 + tryOnOffsetSecondary.y) / 100) * canvas.height;
+          const sx = secLeft - secWidth / 2;
+          const sy = secTop - secHeight / 2;
+          ctx.drawImage(drawSecImg, sx, sy, secWidth, secHeight);
+          saveSnapshotAndAward();
+        };
+        drawSecImg.onerror = () => saveSnapshotAndAward();
+        drawSecImg.src = secondaryTransparentImageUrl || selectedSecondaryCloth.image_url;
+      } else {
+        saveSnapshotAndAward();
+      }
+    };
+    drawPrimaryImg.onerror = () => saveSnapshotAndAward();
+    drawPrimaryImg.src = transparentImageUrl || selectedCloth.image_url;
+  };
+
+  const togglePairFitting = (pairItem = null) => {
+    if (selectedSecondaryCloth) {
+      setSelectedSecondaryCloth(null);
+      setSecondaryTransparentImageUrl(null);
+      triggerToast('단품 피팅 모드로 전환되었습니다.');
+    } else {
+      let candidate = pairItem;
+      if (!candidate) {
+        const targetCategory = selectedCloth?.category === '하의' ? ['상의', '아우터'] : ['하의'];
+        candidate = clothes.find(item => item.status === 'available' && targetCategory.includes(item.category) && item.id !== selectedCloth?.id);
+      }
+      if (candidate) {
+        setSelectedSecondaryCloth(candidate);
+        triggerToast(`👕+👖 세트 동시 피팅 활성화! (${candidate.name} 매칭)`);
+      } else {
+        triggerToast('매칭할 수 있는 짝꿍 의류가 없습니다.');
+      }
+    }
+  };
+
+  const openDualTryOnModal = (topCloth, bottomCloth) => {
+    setSelectedCloth(topCloth);
+    setSelectedSecondaryCloth(bottomCloth);
+    setIsTryOnActive(false);
+    triggerToast(`👕+👖 '${topCloth.name}' + '${bottomCloth.name}' 세트 가상 피팅 팝업이 열렸습니다!`);
   };
 
   const triggerToast = (msg) => {
@@ -1481,17 +1554,27 @@ export default function DashboardPage() {
                         </div>
                       </div>
 
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', flexWrap: 'wrap', gap: '8px', borderTop: '1px solid hsl(var(--border)/0.5)', paddingTop: '12px' }}>
-                        <div style={{ fontSize: '11.5px', color: 'var(--muted-foreground)' }}>
-                          어깨: <strong>{combo.top.measurements.shoulder || combo.top.measurements.waist}cm</strong> / 기장: <strong>{combo.bottom.measurements.length}cm</strong>
-                        </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px', borderTop: '1px solid hsl(var(--border)/0.5)', paddingTop: '12px' }}>
                         <button 
                           className="glow-btn" 
-                          style={{ padding: '8px 16px', fontSize: '12px', borderRadius: 'var(--radius-sm)' }}
-                          onClick={() => openOutfitReserveModal(combo)}
+                          style={{ width: '100%', padding: '10px', fontSize: '13px', borderRadius: 'var(--radius-sm)', background: 'linear-gradient(135deg, #a855f7 0%, #7e22ce 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                          onClick={() => openDualTryOnModal(combo.top, combo.bottom)}
                         >
-                          이 세트 한 번에 예약하기 🎒
+                          <Sparkles size={14} /> 👕+👖 이 세트 동시 가상 피팅하기 (카메라)
                         </button>
+                        
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                          <div style={{ fontSize: '11.5px', color: 'var(--muted-foreground)' }}>
+                            어깨: <strong>{combo.top.measurements.shoulder || combo.top.measurements.waist}cm</strong> / 기장: <strong>{combo.bottom.measurements.length}cm</strong>
+                          </div>
+                          <button 
+                            className="glow-btn-secondary" 
+                            style={{ padding: '8px 14px', fontSize: '12px', borderRadius: 'var(--radius-sm)', border: '1px solid #10b981', color: '#34d399' }}
+                            onClick={() => openOutfitReserveModal(combo)}
+                          >
+                            이 세트 한 번에 예약하기 🎒
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -1578,6 +1661,7 @@ export default function DashboardPage() {
                   }}
                 />
 
+                {/* Primary Garment Overlay */}
                 <div 
                   className={styles.tryOnClothingOverlay}
                   style={{
@@ -1585,15 +1669,37 @@ export default function DashboardPage() {
                     left: `${50 + tryOnOffset.x}%`,
                     transform: `translate(-50%, -50%) scale(${tryOnScale})`,
                     width: '70%',
-                    height: '70%'
+                    height: '70%',
+                    zIndex: selectedCloth.category === '하의' ? 12 : 15
                   }}
                 >
                   <img 
                     src={transparentImageUrl || selectedCloth.image_url} 
-                    alt="tryon-overlay" 
+                    alt="tryon-primary" 
                     className={styles.tryOnClothingImg} 
                   />
                 </div>
+
+                {/* Secondary Garment Overlay (Dual Fit Mode) */}
+                {selectedSecondaryCloth && (
+                  <div 
+                    className={styles.tryOnClothingOverlay}
+                    style={{
+                      top: `${50 + tryOnOffsetSecondary.y}%`,
+                      left: `${50 + tryOnOffsetSecondary.x}%`,
+                      transform: `translate(-50%, -50%) scale(${tryOnScaleSecondary})`,
+                      width: '70%',
+                      height: '70%',
+                      zIndex: selectedSecondaryCloth.category === '하의' ? 12 : 15
+                    }}
+                  >
+                    <img 
+                      src={secondaryTransparentImageUrl || selectedSecondaryCloth.image_url} 
+                      alt="tryon-secondary" 
+                      className={styles.tryOnClothingImg} 
+                    />
+                  </div>
+                )}
 
                 {/* Standing reference guides */}
                 {!isPoseTrackingActive && (
@@ -1609,6 +1715,16 @@ export default function DashboardPage() {
                 )}
 
                 <div className={styles.tryOnToolbar}>
+                  {/* Dual Fit Mode Toggle Button */}
+                  <button 
+                    className={`${styles.tryOnBtn} ${selectedSecondaryCloth ? styles.tryOnBtnActive : ''}`} 
+                    onClick={() => togglePairFitting()} 
+                    title={selectedSecondaryCloth ? `세트 피팅 해제 (짝꿍: ${selectedSecondaryCloth.name})` : "👕+👖 상하의 세트 함께 피팅하기"}
+                    style={{ background: selectedSecondaryCloth ? 'rgba(168, 85, 247, 0.3)' : undefined, border: selectedSecondaryCloth ? '1px solid #c084fc' : undefined }}
+                  >
+                    👕+👖
+                  </button>
+
                   {/* Camera view zoom out / in */}
                   <button className={styles.tryOnBtn} onClick={() => setCameraZoom(z => Math.max(0.4, z - 0.15))} title="카메라 시야 축소 (전신 담기)">🔍-</button>
                   <button className={styles.tryOnBtn} onClick={() => setCameraZoom(z => Math.min(2.0, z + 0.15))} title="카메라 시야 확대">🔍+</button>
