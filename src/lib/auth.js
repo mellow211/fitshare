@@ -1,41 +1,74 @@
 /**
- * FitShare Quick Auth & User Profile Management
- * Manages user accounts, session state, XP gain, and unlocked badges in LocalStorage & Supabase.
+ * FitShare Dedicated Auth & User Profile Engine
+ * Handles explicit Sign Up (Username, Password, Child Name, School, Grade/Class, Phone)
+ * and Simple 2-field Login (Username + Password).
  */
 
 import { supabase } from './supabase';
 import { BADGE_DEFINITIONS } from './gamification';
 
-const AUTH_STORAGE_KEY = 'fitshare_active_user';
+const ACTIVE_USER_KEY = 'fitshare_active_user';
+const USERS_LIST_KEY = 'fitshare_registered_users';
 
-// Get current active logged-in user profile
+// Get current logged-in user profile
 export function getCurrentUser() {
   if (typeof window === 'undefined') return null;
   try {
-    const data = localStorage.getItem(AUTH_STORAGE_KEY);
+    const data = localStorage.getItem(ACTIVE_USER_KEY);
     return data ? JSON.parse(data) : null;
   } catch (e) {
     return null;
   }
 }
 
-// Quick Register or Login User
-export async function loginOrRegisterUser({ nickname, grade, spaceCode, pin }) {
-  if (!nickname || !spaceCode) {
-    throw new Error('닉네임과 공간 코드를 입력해주세요.');
+// Get all registered users from localStorage
+export function getRegisteredUsers() {
+  if (typeof window === 'undefined') return [];
+  try {
+    const data = localStorage.getItem(USERS_LIST_KEY);
+    return data ? JSON.parse(data) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+// Save registered users list
+function saveRegisteredUsers(users) {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(USERS_LIST_KEY, JSON.stringify(users));
+  }
+}
+
+// 1. Sign Up New User (회원가입)
+export async function registerNewUser({ username, password, childName, schoolName, gradeClass, phone }) {
+  if (!username?.trim() || !password?.trim()) {
+    throw new Error('아이디와 비밀번호를 모두 입력해주세요.');
+  }
+  if (!childName?.trim() || !schoolName?.trim()) {
+    throw new Error('자녀 이름과 학교 이름을 입력해주세요.');
   }
 
-  const cleanNickname = nickname.trim();
-  const cleanSpaceCode = spaceCode.trim().toUpperCase();
-  const userId = `user_${cleanSpaceCode}_${cleanNickname.replace(/\s+/g, '_')}`;
+  const cleanUsername = username.trim().toLowerCase();
+  const users = getRegisteredUsers();
 
-  const defaultUser = {
-    id: userId,
-    nickname: cleanNickname,
-    grade: grade || '1학년 1반',
-    spaceCode: cleanSpaceCode,
-    pin: pin || '0000',
-    xp: 100, // Initial welcome bonus
+  // Check duplicate username
+  const existing = users.find(u => u.username.toLowerCase() === cleanUsername);
+  if (existing) {
+    throw new Error('이미 사용 중인 아이디입니다. 다른 아이디를 입력해주세요.');
+  }
+
+  const newUser = {
+    id: `user_${Date.now()}_${cleanUsername}`,
+    username: cleanUsername,
+    password: password.trim(),
+    childName: childName.trim(),
+    nickname: childName.trim(), // Display name
+    schoolName: schoolName.trim(),
+    spaceCode: schoolName.trim().toUpperCase(),
+    gradeClass: gradeClass?.trim() || '1학년 1반',
+    grade: gradeClass?.trim() || '1학년 1반',
+    phone: phone?.trim() || '',
+    xp: 100, // Welcome bonus
     points: 50,
     sharesCount: 0,
     tryOnCount: 0,
@@ -44,49 +77,64 @@ export async function loginOrRegisterUser({ nickname, grade, spaceCode, pin }) {
     createdAt: new Date().toISOString()
   };
 
-  let activeUser = defaultUser;
+  users.push(newUser);
+  saveRegisteredUsers(users);
 
-  // Check if existing user in localStorage
-  const existingData = localStorage.getItem(AUTH_STORAGE_KEY);
-  if (existingData) {
-    try {
-      const parsed = JSON.parse(existingData);
-      if (parsed.id === userId) {
-        activeUser = parsed;
-      }
-    } catch (e) {}
-  }
-
-  // Save active user in localStorage
-  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(activeUser));
+  // Set active logged-in user
+  localStorage.setItem(ACTIVE_USER_KEY, JSON.stringify(newUser));
 
   // Sync to Supabase if connected
   if (supabase) {
     try {
       await supabase.from('user_profiles').upsert([
         {
-          id: activeUser.id,
-          nickname: activeUser.nickname,
-          grade: activeUser.grade,
-          space_code: activeUser.spaceCode,
-          xp: activeUser.xp,
-          points: activeUser.points,
-          unlocked_badges: activeUser.unlockedBadges,
+          id: newUser.id,
+          username: newUser.username,
+          nickname: newUser.nickname,
+          child_name: newUser.childName,
+          school_name: newUser.schoolName,
+          grade: newUser.grade,
+          phone: newUser.phone,
+          space_code: newUser.spaceCode,
+          xp: newUser.xp,
+          points: newUser.points,
+          unlocked_badges: newUser.unlockedBadges,
           updated_at: new Date().toISOString()
         }
       ]);
     } catch (err) {
-      console.warn('Supabase user profile sync skipped:', err);
+      console.warn('Supabase profile sync skipped:', err);
     }
   }
 
-  return activeUser;
+  return newUser;
+}
+
+// 2. Login Existing User (로그인: 아이디 + 비밀번호만 입력)
+export async function loginUser({ username, password }) {
+  if (!username?.trim() || !password?.trim()) {
+    throw new Error('아이디와 비밀번호를 입력해주세요.');
+  }
+
+  const cleanUsername = username.trim().toLowerCase();
+  const cleanPassword = password.trim();
+  const users = getRegisteredUsers();
+
+  const user = users.find(u => u.username.toLowerCase() === cleanUsername);
+
+  if (!user || user.password !== cleanPassword) {
+    throw new Error('아이디 또는 비밀번호가 일치하지 않습니다.');
+  }
+
+  // Set active user session
+  localStorage.setItem(ACTIVE_USER_KEY, JSON.stringify(user));
+  return user;
 }
 
 // Logout user
 export function logoutUser() {
   if (typeof window !== 'undefined') {
-    localStorage.removeItem(AUTH_STORAGE_KEY);
+    localStorage.removeItem(ACTIVE_USER_KEY);
   }
 }
 
@@ -122,7 +170,16 @@ export function awardUserXP(xpAmount, activityType = 'action') {
     newBadges.push(BADGE_DEFINITIONS.find(b => b.id === 'warm_neighbor'));
   }
 
-  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
+  // Update active user in localStorage
+  localStorage.setItem(ACTIVE_USER_KEY, JSON.stringify(user));
+
+  // Also update registered users list
+  const users = getRegisteredUsers();
+  const idx = users.findIndex(u => u.id === user.id);
+  if (idx !== -1) {
+    users[idx] = user;
+    saveRegisteredUsers(users);
+  }
 
   return {
     user,

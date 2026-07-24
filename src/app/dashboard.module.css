@@ -1714,6 +1714,22 @@
   box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
 }
 
+.switchAuthLink {
+  text-align: center;
+  font-size: 12px;
+  color: #cbd5e1 !important;
+  margin-top: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.switchAuthLink strong {
+  color: #34d399 !important;
+  text-decoration: underline;
+}
+.switchAuthLink:hover {
+  opacity: 0.85;
+}
+
 .authProfileCard {
   display: flex;
   flex-direction: column;
