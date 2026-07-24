@@ -367,6 +367,8 @@ export default function DashboardPage() {
             } else {
               const leftShoulder = keypoints.find(k => k.part === 'leftShoulder');
               const rightShoulder = keypoints.find(k => k.part === 'rightShoulder');
+              const leftEar = keypoints.find(k => k.part === 'leftEar');
+              const rightEar = keypoints.find(k => k.part === 'rightEar');
               const leftEye = keypoints.find(k => k.part === 'leftEye');
               const rightEye = keypoints.find(k => k.part === 'rightEye');
               const nose = keypoints.find(k => k.part === 'nose');
@@ -374,16 +376,27 @@ export default function DashboardPage() {
               let midX = 0, midY = 0, width = 0;
               let hasMatch = false;
 
-              if (leftShoulder && rightShoulder && leftShoulder.position.x > 5 && rightShoulder.position.x > 5 && (leftShoulder.score > 0.08 || rightShoulder.score > 0.08)) {
+              // Priority 1: Shoulder Detection (threshold >= 0.02)
+              if (leftShoulder && rightShoulder && leftShoulder.position.x > 5 && rightShoulder.position.x > 5 && (leftShoulder.score > 0.02 || rightShoulder.score > 0.02)) {
                 midX = (leftShoulder.position.x + rightShoulder.position.x) / 2;
                 midY = (leftShoulder.position.y + rightShoulder.position.y) / 2;
                 width = Math.abs(leftShoulder.position.x - rightShoulder.position.x);
                 hasMatch = true;
-              } else if (leftEye && rightEye && nose && leftEye.position.x > 5 && rightEye.position.x > 5) {
+              } 
+              // Priority 2: Ear Detection Fallback
+              else if (leftEar && rightEar && leftEar.position.x > 5 && rightEar.position.x > 5 && (leftEar.score > 0.05 || rightEar.score > 0.05)) {
+                const earDist = Math.abs(leftEar.position.x - rightEar.position.x);
+                midX = (leftEar.position.x + rightEar.position.x) / 2;
+                midY = (leftEar.position.y + rightEar.position.y) / 2 + earDist * 0.9;
+                width = earDist * 1.75;
+                hasMatch = true;
+              }
+              // Priority 3: Eye/Nose Detection Fallback
+              else if (leftEye && rightEye && nose && leftEye.position.x > 5 && rightEye.position.x > 5) {
                 const eyeDist = Math.abs(leftEye.position.x - rightEye.position.x);
                 midX = nose.position.x;
-                midY = nose.position.y + eyeDist * 1.6;
-                width = eyeDist * 2.8;
+                midY = nose.position.y + eyeDist * 2.2;
+                width = eyeDist * 3.8;
                 hasMatch = true;
               }
 
@@ -392,15 +405,16 @@ export default function DashboardPage() {
                 const normY = midY / vidH;
                 const normW = width / vidW;
 
-                const percentX = Math.max(-42, Math.min(42, normX * 100 - 50));
-                const percentY = Math.max(-42, Math.min(42, normY * 100 - 28));
-                const targetScale = Math.max(0.35, Math.min(2.5, normW / 0.18));
+                // Center clothing overlay on shoulder line
+                const percentX = Math.max(-42, Math.min(42, (normX - 0.5) * 100));
+                const percentY = Math.max(-42, Math.min(42, (normY - 0.5) * 100 + 4));
+                const targetScale = Math.max(0.4, Math.min(2.8, normW / 0.125));
 
                 setTryOnOffset(prev => ({
-                  x: prev.x * 0.6 + percentX * 0.4,
-                  y: prev.y * 0.6 + percentY * 0.4
+                  x: prev.x * 0.5 + percentX * 0.5,
+                  y: prev.y * 0.5 + percentY * 0.5
                 }));
-                setTryOnScale(prev => prev * 0.6 + targetScale * 0.4);
+                setTryOnScale(prev => prev * 0.5 + targetScale * 0.5);
               }
             }
           }
@@ -611,6 +625,7 @@ export default function DashboardPage() {
   const fetchOutfitRecommendations = async (compatibleItems) => {
     if (compatibleItems.length === 0) {
       setAiRecommendations([]);
+      setIsRecommendLoading(false);
       return;
     }
     setIsRecommendLoading(true);
