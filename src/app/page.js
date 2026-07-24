@@ -9,10 +9,26 @@ import {
 } from 'lucide-react';
 import styles from './dashboard.module.css';
 import { getClothes, reserveCloth, deleteCloth } from '../lib/db';
+import { getCurrentUser, awardUserXP } from '../lib/auth';
+import GamificationBar from '../components/GamificationBar';
+import AuthModal from '../components/AuthModal';
+import BadgeModal from '../components/BadgeModal';
 
 export default function DashboardPage() {
   const router = useRouter();
   
+  // Gamification & User Auth States
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
+
+  useEffect(() => {
+    const user = getCurrentUser();
+    if (user) {
+      setCurrentUser(user);
+    }
+  }, []);
+
   // Wardrobe Space Code
   const [spaceCode, setSpaceCode] = useState('');
   const [enteredSpaceCode, setEnteredSpaceCode] = useState('');
@@ -478,7 +494,18 @@ export default function DashboardPage() {
       link.download = `fitshare_tryon_${selectedCloth.name.replace(/\s+/g, '_')}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
-      triggerToast("📸 피팅 사진이 성공적으로 저장되었습니다!");
+      
+      const xpResult = awardUserXP(30, 'try_on');
+      if (xpResult.user) {
+        setCurrentUser(xpResult.user);
+        triggerToast("📸 피팅 샷 저장 완료! (+30 XP 획득)");
+        if (xpResult.unlockedBadges && xpResult.unlockedBadges.length > 0) {
+          const bName = xpResult.unlockedBadges[0].name;
+          setTimeout(() => triggerToast(`🎉 축하합니다! '${bName}' 배지를 해금하셨습니다!`), 1200);
+        }
+      } else {
+        triggerToast("📸 피팅 사진이 성공적으로 저장되었습니다!");
+      }
     };
     img.src = transparentImageUrl || selectedCloth.image_url;
   };
@@ -768,7 +795,15 @@ export default function DashboardPage() {
       };
 
       await reserveCloth(spaceCode, selectedCloth.id, reservation);
-      triggerToast('나눔 옷 예약이 완료되었습니다. 학교로 방문해주세요!');
+      
+      const xpResult = awardUserXP(150, 'reserve');
+      if (xpResult.user) {
+        setCurrentUser(xpResult.user);
+        triggerToast('나눔 옷 예약 완료! 🎉 (+150 XP 획득)');
+      } else {
+        triggerToast('나눔 옷 예약이 완료되었습니다. 학교로 방문해주세요!');
+      }
+
       setIsReserveModalOpen(false);
       setSelectedCloth(null);
       
@@ -1010,6 +1045,13 @@ export default function DashboardPage() {
           </button>
         </div>
       </div>
+
+      {/* Gamification Level, Profile & Carbon Bar */}
+      <GamificationBar 
+        currentUser={currentUser}
+        onOpenAuth={() => setIsAuthModalOpen(true)}
+        onOpenBadges={() => setIsBadgeModalOpen(true)}
+      />
 
       {/* Mascot Guidance Widget */}
       <div className={styles.mascotWidget}>
@@ -1966,6 +2008,21 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      {/* Gamification & Auth Modals */}
+      <AuthModal 
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        currentUser={currentUser}
+        onUserChange={setCurrentUser}
+        triggerToast={triggerToast}
+      />
+
+      <BadgeModal 
+        isOpen={isBadgeModalOpen}
+        onClose={() => setIsBadgeModalOpen(false)}
+        currentUser={currentUser}
+      />
     </div>
   );
 }
