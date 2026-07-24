@@ -405,12 +405,12 @@ export default function DashboardPage() {
                 const normY = midY / vidH;
                 const normW = width / vidW;
 
-                // Adaptive non-linear scaling for both far-away full body and close-up shots
-                const targetScale = Math.max(0.45, Math.min(2.2, Math.pow(normW / 0.16, 0.85)));
+                // Scale garment to fit human shoulder width accurately
+                const targetScale = Math.max(0.4, Math.min(2.0, normW / 0.24));
 
-                // Mathematically lock garment collar to human shoulder line (midY) at any distance
+                // Mathematically lock garment collar to neck line (just above shoulder line)
                 const percentX = Math.max(-42, Math.min(42, (normX - 0.5) * 100));
-                const percentY = Math.max(-42, Math.min(42, (normY - 0.5) * 100 - 12 + (8 * targetScale)));
+                const percentY = Math.max(-42, Math.min(42, (normY - 0.5) * 100 + (35 * targetScale) - 8));
 
                 setTryOnOffset(prev => ({
                   x: prev.x * 0.5 + percentX * 0.5,
