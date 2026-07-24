@@ -1497,25 +1497,29 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: rgba(16, 185, 129, 0.08);
+  background: rgba(16, 185, 129, 0.12);
   border: 1px dashed rgba(16, 185, 129, 0.4);
   border-radius: var(--radius-md);
   padding: 10px 16px;
   margin-bottom: 16px;
   gap: 12px;
   font-size: 13px;
+  color: #f8fafc !important;
 }
 
 .gamificationGuestContent {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: hsl(var(--foreground));
+  color: #f8fafc !important;
+}
+.gamificationGuestContent strong {
+  color: #34d399 !important;
 }
 
 .loginBtnSmall {
   background: hsl(var(--primary));
-  color: white;
+  color: #ffffff !important;
   border: none;
   border-radius: 20px;
   padding: 6px 14px;
@@ -1537,15 +1541,16 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: rgba(15, 23, 42, 0.6);
+  background: rgba(15, 23, 42, 0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: var(--radius-md);
   padding: 10px 16px;
   margin-bottom: 20px;
   gap: 16px;
   flex-wrap: wrap;
+  color: #ffffff !important;
 }
 
 .gamificationProfileInfo {
@@ -1570,11 +1575,15 @@
   align-items: center;
   gap: 8px;
   font-size: 14px;
+  color: #ffffff !important;
+}
+.userNameRow strong {
+  color: #ffffff !important;
 }
 
 .levelTag {
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  color: white;
+  color: #ffffff !important;
   font-size: 11px;
   font-weight: 700;
   padding: 2px 8px;
@@ -1612,7 +1621,10 @@
   padding: 6px 12px;
   border-radius: 20px;
   font-size: 12px;
-  color: #34d399;
+  color: #34d399 !important;
+}
+.statPill strong {
+  color: #34d399 !important;
 }
 
 .badgePillBtn {
@@ -1624,9 +1636,12 @@
   padding: 6px 12px;
   border-radius: 20px;
   font-size: 12px;
-  color: #c084fc;
+  color: #c084fc !important;
   cursor: pointer;
   transition: all 0.2s ease;
+}
+.badgePillBtn strong {
+  color: #c084fc !important;
 }
 .badgePillBtn:hover {
   background: rgba(168, 85, 247, 0.25);
@@ -1635,15 +1650,16 @@
 
 /* Modal Small Content for Auth & Badges */
 .modalContentSmall {
-  background: var(--card-bg, #0f172a);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: #0f172a !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
   border-radius: var(--radius-lg);
   padding: 24px;
   width: 90%;
   max-width: 440px;
   position: relative;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.7);
   animation: modalPop 0.25s ease-out;
+  color: #ffffff !important;
 }
 
 .authTitleGroup {
@@ -1653,10 +1669,11 @@
 .authTitleGroup h3 {
   font-size: 20px;
   margin-top: 6px;
+  color: #ffffff !important;
 }
 .authTitleGroup p {
   font-size: 12px;
-  color: hsl(var(--muted-foreground));
+  color: #cbd5e1 !important;
   margin-top: 4px;
 }
 
@@ -1672,28 +1689,36 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  color: hsl(var(--muted-foreground));
+  color: #cbd5e1 !important;
 }
 .formGroup input {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
   border-radius: var(--radius-sm);
   padding: 10px 14px;
-  color: white;
+  color: #ffffff !important;
   font-size: 14px;
+}
+.formGroup input::placeholder {
+  color: #94a3b8 !important;
 }
 .formGroup input:focus {
   outline: none;
-  border-color: hsl(var(--primary));
+  border-color: #10b981 !important;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
 }
 
 .authProfileCard {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  color: #ffffff !important;
 }
 .authHeader {
   text-align: center;
+}
+.authHeader h3 {
+  color: #ffffff !important;
 }
 .authAvatar {
   font-size: 36px;
@@ -1701,23 +1726,29 @@
 }
 .authSubtitle {
   font-size: 12px;
-  color: hsl(var(--muted-foreground));
+  color: #cbd5e1 !important;
 }
 
 .levelProgressBox {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-md);
   padding: 14px;
+  color: #ffffff !important;
 }
 .levelTitleRow {
   display: flex;
   justify-content: space-between;
   font-size: 13px;
   margin-bottom: 8px;
+  color: #ffffff !important;
+}
+.levelTitleRow span {
+  color: #ffffff !important;
 }
 .xpBarTrackBig {
   height: 10px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.15);
   border-radius: 5px;
   overflow: hidden;
 }
@@ -1728,9 +1759,12 @@
 }
 .xpTip {
   font-size: 11px;
-  color: hsl(var(--muted-foreground));
+  color: #cbd5e1 !important;
   margin-top: 8px;
   text-align: right;
+}
+.xpTip strong {
+  color: #34d399 !important;
 }
 
 .userStatsGrid {
@@ -1739,8 +1773,8 @@
   gap: 12px;
 }
 .userStatItem {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-md);
   padding: 12px;
   display: flex;
@@ -1748,15 +1782,17 @@
   align-items: center;
   gap: 4px;
   font-size: 11px;
+  color: #cbd5e1 !important;
 }
 .userStatItem strong {
   font-size: 16px;
+  color: #ffffff !important;
 }
 
 .logoutBtn {
-  background: rgba(239, 68, 68, 0.15);
-  color: #f87171;
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.2) !important;
+  color: #fca5a5 !important;
+  border: 1px solid rgba(239, 68, 68, 0.4) !important;
   border-radius: var(--radius-sm);
   padding: 10px;
   font-weight: 600;
@@ -1772,6 +1808,16 @@
 .badgeModalHeader {
   text-align: center;
   margin-bottom: 20px;
+}
+.badgeModalHeader h3 {
+  color: #ffffff !important;
+  font-size: 18px;
+  margin-top: 6px;
+}
+.badgeModalHeader p {
+  color: #cbd5e1 !important;
+  font-size: 12px;
+  margin-top: 4px;
 }
 .trophyIcon {
   color: #f59e0b;
@@ -1789,15 +1835,16 @@
   gap: 14px;
   padding: 12px 14px;
   border-radius: var(--radius-md);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+  color: #ffffff !important;
 }
 .badgeUnlocked {
-  border-color: rgba(168, 85, 247, 0.4);
-  background: rgba(168, 85, 247, 0.08);
+  border-color: rgba(168, 85, 247, 0.5) !important;
+  background: rgba(168, 85, 247, 0.12) !important;
 }
 .badgeLocked {
-  opacity: 0.6;
+  opacity: 0.65;
 }
 .badgeIconWrapper {
   position: relative;
@@ -1821,15 +1868,16 @@
 .badgeInfo h4 {
   font-size: 14px;
   margin-bottom: 2px;
+  color: #ffffff !important;
 }
 .badgeInfo p {
   font-size: 11px;
-  color: hsl(var(--muted-foreground));
+  color: #cbd5e1 !important;
 }
 .badgeStatusTag {
   font-size: 11px;
   font-weight: 600;
-  color: #c084fc;
+  color: #c084fc !important;
 }
 
 
