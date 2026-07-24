@@ -22,6 +22,29 @@ export default function AuthModal({ isOpen, onClose, currentUser, onUserChange, 
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Reset form inputs completely when modal opens or closes
+  const resetForm = () => {
+    setLoginUsername('');
+    setLoginPassword('');
+    setRegUsername('');
+    setRegPassword('');
+    setRegChildName('');
+    setRegSchoolName('');
+    setRegGradeClass('');
+    setRegPhone('');
+  };
+
+  React.useEffect(() => {
+    if (isOpen) {
+      resetForm();
+    }
+  }, [isOpen]);
+
+  const handleCloseModal = () => {
+    resetForm();
+    onClose();
+  };
+
   if (!isOpen) return null;
 
   // Handle Login (아이디 + 비밀번호)
@@ -39,6 +62,7 @@ export default function AuthModal({ isOpen, onClose, currentUser, onUserChange, 
       });
       onUserChange(user);
       triggerToast(`반갑습니다, ${user.nickname}님! 🔑 로그인되었습니다.`);
+      resetForm();
       onClose();
     } catch (err) {
       triggerToast(err.message || '로그인에 실패했습니다.');
@@ -66,6 +90,7 @@ export default function AuthModal({ isOpen, onClose, currentUser, onUserChange, 
       });
       onUserChange(user);
       triggerToast(`회원가입 완료! 환영합니다, ${user.nickname}님! 🎉 (+100 XP 웰컴 보너스)`);
+      resetForm();
       onClose();
     } catch (err) {
       triggerToast(err.message || '회원가입 중 오류가 발생했습니다.');
@@ -78,6 +103,7 @@ export default function AuthModal({ isOpen, onClose, currentUser, onUserChange, 
     logoutUser();
     onUserChange(null);
     triggerToast('로그아웃 되었습니다.');
+    resetForm();
     onClose();
   };
 
@@ -85,9 +111,9 @@ export default function AuthModal({ isOpen, onClose, currentUser, onUserChange, 
   const carbon = currentUser ? calculateCarbonSavings(currentUser.sharesCount || 1) : null;
 
   return (
-    <div className={styles.modalOverlay} onClick={onClose}>
+    <div className={styles.modalOverlay} onClick={handleCloseModal}>
       <div className={styles.modalContentSmall} onClick={e => e.stopPropagation()}>
-        <button className={styles.closeButton} onClick={onClose}>
+        <button className={styles.closeButton} onClick={handleCloseModal}>
           <X size={16} />
         </button>
 
