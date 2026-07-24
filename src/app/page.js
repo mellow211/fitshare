@@ -405,10 +405,12 @@ export default function DashboardPage() {
                 const normY = midY / vidH;
                 const normW = width / vidW;
 
-                // Center clothing overlay on shoulder line with collar offset
+                // Adaptive non-linear scaling for both far-away full body and close-up shots
+                const targetScale = Math.max(0.45, Math.min(2.2, Math.pow(normW / 0.16, 0.85)));
+
+                // Mathematically lock garment collar to human shoulder line (midY) at any distance
                 const percentX = Math.max(-42, Math.min(42, (normX - 0.5) * 100));
-                const percentY = Math.max(-42, Math.min(42, (normY - 0.5) * 100 + 15));
-                const targetScale = Math.max(0.35, Math.min(2.2, normW / 0.21));
+                const percentY = Math.max(-42, Math.min(42, (normY - 0.5) * 100 + (13.5 * targetScale)));
 
                 setTryOnOffset(prev => ({
                   x: prev.x * 0.5 + percentX * 0.5,
