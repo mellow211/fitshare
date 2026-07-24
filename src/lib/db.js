@@ -386,6 +386,50 @@ export async function reserveCloth(spaceCode, clothId, reservationData) {
 }
 
 /**
+ * Cancels a reservation: resets status to 'available' and clears reservation info
+ */
+export async function cancelReservation(spaceCode, clothId) {
+  if (isMock) {
+    const clothes = getLocalClothes(spaceCode);
+    const updated = clothes.map(item => {
+      if (item.id === clothId) {
+        return {
+          ...item,
+          status: 'available',
+          reservation: null
+        };
+      }
+      return item;
+    });
+    saveLocalClothes(spaceCode, updated);
+    return true;
+  }
+
+  try {
+    const { error } = await supabase
+      .from('clothes')
+      .update({
+        status: 'available',
+        reservation: null
+      })
+      .eq('id', clothId);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error canceling reservation in Supabase:', error);
+    const clothes = getLocalClothes(spaceCode);
+    const updated = clothes.map(item => {
+      if (item.id === clothId) {
+        return { ...item, status: 'available', reservation: null };
+      }
+      return item;
+    });
+    saveLocalClothes(spaceCode, updated);
+  }
+}
+
+/**
  * Deletes a clothing item
  */
 export async function deleteCloth(spaceCode, clothId) {
@@ -406,7 +450,6 @@ export async function deleteCloth(spaceCode, clothId) {
     return true;
   } catch (error) {
     console.error('Error deleting cloth from Supabase:', error);
-    // Failover
     const clothes = getLocalClothes(spaceCode);
     const filtered = clothes.filter(item => item.id !== clothId);
     saveLocalClothes(spaceCode, filtered);

@@ -5,10 +5,10 @@ import { useRouter } from 'next/navigation';
 import { 
   Sparkles, Search, SlidersHorizontal, RefreshCw, Smartphone, 
   MapPin, Check, QrCode, ClipboardList, Ruler, Info, ShoppingBag, Trash2, X,
-  Loader2
+  Loader2, RotateCcw
 } from 'lucide-react';
 import styles from './dashboard.module.css';
-import { getClothes, reserveCloth, deleteCloth } from '../lib/db';
+import { getClothes, reserveCloth, deleteCloth, cancelReservation } from '../lib/db';
 import { getCurrentUser, awardUserXP } from '../lib/auth';
 import GamificationBar from '../components/GamificationBar';
 import AuthModal from '../components/AuthModal';
@@ -819,6 +819,25 @@ export default function DashboardPage() {
     }
   };
 
+  const handleCancelReservation = async (cloth) => {
+    if (!cloth) return;
+    if (!confirm(`'${cloth.name}' 의류 나눔 예약을 취소하시겠습니까?\n취소 시 다른 학부모가 예약할 수 있도록 다시 공개됩니다.`)) {
+      return;
+    }
+
+    try {
+      await cancelReservation(spaceCode, cloth.id);
+      triggerToast('예약이 성공적으로 취소되어 다시 나눔 가능한 상태가 되었습니다. ↩️');
+      if (selectedCloth?.id === cloth.id) {
+        setSelectedCloth(null);
+      }
+      loadClothes();
+    } catch (e) {
+      console.error(e);
+      triggerToast('예약 취소 처리 중 오류가 발생했습니다.');
+    }
+  };
+
   const openOutfitReserveModal = (outfit) => {
     setSelectedOutfit(outfit);
     setIsOutfitReserveModalOpen(true);
@@ -1310,6 +1329,34 @@ export default function DashboardPage() {
                       <span>{comp.label === '예쁘게 잘 맞음' ? '💚 ' + comp.label : comp.label === '여유로움 (성장 대비)' ? '💛 ' + comp.label : '❤️ ' + comp.label}</span>
                     </div>
                   )}
+
+                  {cloth.status === 'reserved' && (
+                    <button
+                      type="button"
+                      style={{
+                        marginTop: '10px',
+                        width: '100%',
+                        padding: '6px 10px',
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'rgba(239, 68, 68, 0.15)',
+                        border: '1px solid rgba(239, 68, 68, 0.3)',
+                        color: '#f87171',
+                        fontSize: '11px',
+                        fontWeight: '700',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '4px',
+                        cursor: 'pointer'
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCancelReservation(cloth);
+                      }}
+                    >
+                      <RotateCcw size={12} /> ↩️ 예약 취소하기
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -1783,11 +1830,18 @@ export default function DashboardPage() {
                     🎁 이 나눔 옷 무료로 신청하기
                   </button>
                 ) : (
-                  <div style={{ background: 'hsl(var(--muted))', border: '1px solid hsl(var(--border))', borderRadius: 'var(--radius-md)', padding: '14px', textAlign: 'center' }}>
-                    <p style={{ fontWeight: '800', color: '#ca8a04', fontSize: '14px' }}>🔒 이미 나눔 예약이 완료된 의류입니다</p>
-                    <p style={{ fontSize: '12px', color: 'hsl(var(--muted-foreground))', marginTop: '4px' }}>
-                      예약자: {selectedCloth.reservation?.student_name} ({selectedCloth.reservation?.grade})
+                  <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 'var(--radius-md)', padding: '14px', textAlign: 'center' }}>
+                    <p style={{ fontWeight: '800', color: '#f59e0b', fontSize: '14px' }}>🔒 이미 나눔 예약이 완료된 의류입니다</p>
+                    <p style={{ fontSize: '12px', color: '#cbd5e1', marginTop: '4px' }}>
+                      예약자: {selectedCloth.reservation?.student_name || '학부모'} ({selectedCloth.reservation?.grade || '소속관'})
                     </p>
+                    <button 
+                      className="glow-btn-secondary" 
+                      style={{ marginTop: '12px', width: '100%', padding: '10px', borderRadius: 'var(--radius-sm)', border: '1px solid #ef4444', color: '#f87171', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: 'rgba(239,68,68,0.15)' }}
+                      onClick={() => handleCancelReservation(selectedCloth)}
+                    >
+                      <RotateCcw size={14} /> ↩️ 예약 취소하기
+                    </button>
                   </div>
                 )}
               </div>
