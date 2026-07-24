@@ -405,18 +405,19 @@ export default function DashboardPage() {
                 const normY = midY / vidH;
                 const normW = width / vidW;
 
-                // Scale garment to fit human shoulder width accurately
+                // Scale garment to fit human shoulder width accurately (1:1 matching)
                 const targetScale = Math.max(0.4, Math.min(2.0, normW / 0.24));
 
-                // Mathematically lock garment collar to neck line (just above shoulder line)
+                // Mathematically invariant collar placement: collarTop === normY * 100
                 const percentX = Math.max(-42, Math.min(42, (normX - 0.5) * 100));
-                const percentY = Math.max(-42, Math.min(42, (normY - 0.5) * 100 + (35 * targetScale) - 8));
+                const percentY = Math.max(-42, Math.min(42, (normY - 0.5) * 100 + (24.5 * targetScale)));
 
+                // Smooth exponential moving average for flicker-free tracking
                 setTryOnOffset(prev => ({
-                  x: prev.x * 0.5 + percentX * 0.5,
-                  y: prev.y * 0.5 + percentY * 0.5
+                  x: prev.x * 0.7 + percentX * 0.3,
+                  y: prev.y * 0.7 + percentY * 0.3
                 }));
-                setTryOnScale(prev => prev * 0.5 + targetScale * 0.5);
+                setTryOnScale(prev => prev * 0.7 + targetScale * 0.3);
               }
             }
           }
