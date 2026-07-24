@@ -405,10 +405,10 @@ export default function DashboardPage() {
                 const normY = midY / vidH;
                 const normW = width / vidW;
 
-                // Center clothing overlay on shoulder line
+                // Center clothing overlay on shoulder line with collar offset
                 const percentX = Math.max(-42, Math.min(42, (normX - 0.5) * 100));
-                const percentY = Math.max(-42, Math.min(42, (normY - 0.5) * 100 + 4));
-                const targetScale = Math.max(0.4, Math.min(2.8, normW / 0.125));
+                const percentY = Math.max(-42, Math.min(42, (normY - 0.5) * 100 + 15));
+                const targetScale = Math.max(0.35, Math.min(2.2, normW / 0.21));
 
                 setTryOnOffset(prev => ({
                   x: prev.x * 0.5 + percentX * 0.5,
