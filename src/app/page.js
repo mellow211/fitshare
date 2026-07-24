@@ -410,7 +410,7 @@ export default function DashboardPage() {
 
                 // Mathematically lock garment collar to human shoulder line (midY) at any distance
                 const percentX = Math.max(-42, Math.min(42, (normX - 0.5) * 100));
-                const percentY = Math.max(-42, Math.min(42, (normY - 0.5) * 100 + (13.5 * targetScale)));
+                const percentY = Math.max(-42, Math.min(42, (normY - 0.5) * 100 - 12 + (8 * targetScale)));
 
                 setTryOnOffset(prev => ({
                   x: prev.x * 0.5 + percentX * 0.5,
