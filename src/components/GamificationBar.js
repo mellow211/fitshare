@@ -9,12 +9,12 @@ export default function GamificationBar({ currentUser, onOpenAuth, onOpenBadges,
     return (
       <div className={styles.gamificationBarGuest}>
         <div className={styles.gamificationGuestContent}>
-          <Sparkles size={16} className={styles.pulseIcon} />
-          <span>아나바다 나눔하고 <strong>레벨업 &amp; 배지</strong>를 획득해보세요!</span>
+          <Sparkles size={16} style={{ color: '#34d399', flexShrink: 0 }} />
+          <span>아나바다 나눔하고 <strong style={{ color: '#34d399' }}>레벨업 &amp; 배지</strong>를 획득해보세요!</span>
         </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button className={styles.badgePillBtn} onClick={onOpenLeaderboard} title="나눔 랭킹 보기">
-            <Trophy size={14} /> <span>나눔 랭킹</span>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <button className={styles.badgePillBtn} onClick={onOpenLeaderboard} title="나눔 랭킹 보기" style={{ background: 'rgba(168, 85, 247, 0.2)', borderColor: 'rgba(168, 85, 247, 0.4)', color: '#c084fc' }}>
+            <Trophy size={14} style={{ color: '#c084fc' }} /> <span style={{ color: '#c084fc', fontWeight: '700' }}>나눔 랭킹</span>
           </button>
           <button className={styles.loginBtnSmall} onClick={onOpenAuth}>
             <LogIn size={14} /> 3초 간편 로그인
